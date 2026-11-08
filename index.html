@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Zurab Lomidze · Project Manager</title>
+  <meta name="description" content="Project manager in logistics and operations, based in Prague. An interactive story of my path from Georgia to the US to the Czech Republic, with CV and contact.">
+  <meta name="theme-color" content="#0a0f1d">
+  <link rel="canonical" href="https://zurablomidze.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://zurablomidze.com/">
+  <meta property="og:site_name" content="Zurab Lomidze">
+  <meta property="og:title" content="Zurab Lomidze · Project Manager">
+  <meta property="og:description" content="Project manager in logistics and operations, based in Prague. An interactive story of my path from Georgia to the US to the Czech Republic, with CV and contact.">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main>
+    <!-- The map stage sticks to the screen for the whole page: first over the
+         story track (its scroll length is PACING.screens, js/pacing.js), then
+         as a dimmed backdrop while the ending scrolls over it. -->
+    <div class="story">
+      <!-- The stage is a picture, not a landmark: the map is one image with a
+           name. The story itself (js/story-text.js) is a hidden text version
+           right after it; the visual title, cards and passes are aria-hidden. -->
+      <div class="stage">
+        <div id="map" class="map" role="img" aria-label="Dark world map showing my path from Georgia to South Dakota to the Czech Republic"></div>
+        <div class="stage-dim" aria-hidden="true"></div>
+        <div class="hud" aria-hidden="true"></div>
+      </div>
+      <div class="story-track" aria-hidden="true"></div>
+      <section class="ending" aria-labelledby="ending-title">
+        <div class="ending-inner">
+          <h2 id="ending-title" class="ending-kicker">Get in touch</h2>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="vendor/gsap/gsap.min.js"></script>
+  <script src="vendor/gsap/ScrollTrigger.min.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/cv.js"></script>
+  <script src="js/stops.js"></script>
+  <script src="js/pacing.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/world-map.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/scroll-story.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/passes.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/city-labels.js"></script>
+  <script src="js/plane.js"></script>
+  <script src="js/title.js"></script>
+  <script src="js/story-text.js"></script>
+  <script src="js/ending.js"></script>
+  <script src="js/contact.js"></script>
+  <script src="js/visiting-card.js"></script>
+  <script src="js/cv-viewer.js"></script>
+  <script src="js/skip.js"></script>
+  <script src="js/hint.js"></script>
+  <script src="js/snap.js"></script>
+</body>
+</html>

@@ -1,0 +1,2549 @@
+/* ---- Palette: the only place colours are defined ----------------------------
+   Colour logic: blue = places, yellow = movement. */
+:root {
+  --ocean: #0a0f1d;
+  --land: #141d3a;
+  --land-highlight: #1a264b;   /* land inside highlighted countries */
+  --country-border: #2b4070;
+  --state-border: #1f2f56;
+  --graticule-color: #1e2a52;  /* lat/lon grid, slightly lighter than land */
+
+  --neon-glow: #19c3ff;   /* places */
+  --neon-core: #d9fbff;
+
+  --route-halo: #ffd400;  /* movement */
+  --route-glow: #ffe629;
+  --route-core: #fffbd0;
+
+  /* ---- Size unit --------------------------------------------------------------
+     1u = 1/1920 of the window width (= 1px on a 1920-wide window at 100%), for
+     windows from about 1277px wide up. Browser zoom changes CSS pixels but not
+     the window width, so there anything sized in u looks the same at any
+     browser zoom. In-page map zoom doesn't change it either (non-scaling
+     strokes + counter-scaled dots).
+     Narrower windows (phones, tablets, small or zoomed desktop windows) take
+     the second, gentler term instead: u grows as the window narrows, to about
+     0.9px on a phone. --u-base and --u-slope set it; the crossover (where the
+     two terms meet) must stay just below 1277px so wider windows are unchanged. */
+  --u-base: 1px;
+  --u-slope: 0.0263vw;
+  --u: max(calc(100vw / 1920), calc(var(--u-base) - var(--u-slope)));
+
+  /* ---- Viewport heights (mobile) ------------------------------------------------
+     --stage-h: the map canvas, on the large viewport (a phone's browser toolbar
+     collapsed), so the map always fills the screen. --ui-h: the small viewport
+     (toolbar shown); UI that is centred or bottom-anchored on the screen uses
+     it, so it never hides behind the toolbar and doesn't move when the toolbar
+     does. On desktop both are the window height; vh is the fallback. */
+  --stage-h: 100vh;
+  --ui-h: 100vh;
+
+  /* Safe areas (notch, home indicator) with viewport-fit=cover; 0 on desktop. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Touch floors (see "Layout modes" below): 0 here, so mouse devices never
+     get them. Tracked uppercase labels, story card text, tap targets. */
+  --label-floor: 0px;
+  --text-floor: 0px;
+  --field-floor: 0px;   /* the form's typed text: 16px on touch, so iOS doesn't zoom in on focus */
+  --tap: 0px;
+
+  /* Room under the page's last content that the bottom of the screen takes:
+     0 here; the chapter bar in portrait (see "Chapter bar"). The ending and
+     scroll-into-view keep this clear. */
+  --bottom-clear: var(--safe-bottom);
+
+  /* ---- Tuning: sizes in u ---- */
+  --country-border-width: calc(var(--u) * 0.7);
+  --state-border-width: calc(var(--u) * 0.6);
+  --graticule-width: calc(var(--u) * 0.7);
+  --graticule-opacity: 0.35;
+
+  /* Country outlines (Georgia, USA, Czechia): uniform */
+  --place-halo-width: calc(var(--u) * 9);
+  --place-halo-opacity: 0.128;
+  --place-glow-width: calc(var(--u) * 3.5);
+  --place-glow-opacity: 0.44;
+  --place-core-width: calc(var(--u) * 1.1);
+  --place-core-opacity: 0.8;
+
+  /* Alaska, Hawaii and other outlying US parts: drawn at this fraction of the
+     contiguous US outline's intensity, so the lower 48 lead */
+  --us-outer-ratio: 0.5;
+
+  /* The stop's US state (South Dakota): this fraction of the country outline */
+  --state-ratio: 0.5;
+  --state-halo-width: calc(var(--u) * 9);
+  --state-glow-width: calc(var(--u) * 3.5);
+  --state-core-width: calc(var(--u) * 1.1);
+
+  --route-halo-width: calc(var(--u) * 3.92);
+  --route-halo-opacity: 0.098;
+  --route-glow-width: calc(var(--u) * 1.47);
+  --route-glow-opacity: 0.32;
+  --route-core-width: calc(var(--u) * 0.64);
+  --route-core-opacity: 1;
+  --route-done-opacity: 0.45;      /* finished flight's trail, dimmed */
+  --route-faint-opacity: 0.12;     /* the whole route, faintly, from the title on */
+
+  --dot-radius: calc(var(--u) * 1.69);      /* city dot */
+  --dot-ring-width: calc(var(--u) * 0.85);  /* neon ring around the dot */
+  --pulse-radius: calc(var(--u) * 2.25);    /* pulse circle at rest (max = this x pulse-scale) */
+  --pulse-scale: 2.47;             /* pulse grows to this many times its size */
+  --pulse-opacity: 0.34;           /* pulse starts at this opacity, fades to 0 */
+  --pulse-duration: 2.2s;
+
+  /* The plane: white, with a soft glow (a wider, faint route-yellow stroke) */
+  --plane-color: #ffffff;
+  --plane-size: calc(var(--u) * 30);        /* glyph box; the plane itself is about 25u nose to tail */
+  --plane-glow-width: calc(var(--u) * 5);
+  --plane-glow-opacity: 0.35;
+
+  /* City label under the dot (only while the camera is settled on a stop) */
+  --city-label-color: #d9fbff;
+  --city-label-size: calc(var(--u) * 12);
+  --city-label-tracking: 0.28;              /* letter spacing, in em */
+  --city-label-tracking-from: 0.08;         /* extra tracking while fading in (tightens) */
+  --city-label-offset: calc(var(--u) * 11); /* dot centre to the top of the letters */
+  --city-label-rise: calc(var(--u) * 6);    /* rises this far while fading in */
+  --city-label-outline: calc(var(--u) * 3); /* dark outline behind the letters */
+  --city-label-outline-color: #0a0f1d;
+  --city-label-opacity: 1;
+  --city-label-px: max(var(--city-label-size), var(--label-floor));   /* what is drawn: the size above, with the touch floor */
+
+  /* Story cards and boarding passes (right side): solid dark panel, no blur.
+     Width and right margin are clamped to a share of the window, so narrow
+     windows (where u grows) keep room for the map; from 1277px wide up the
+     u values win. */
+  --card-bg: color-mix(in srgb, var(--ocean) 90%, transparent);
+  --card-border: #35497c;
+  --card-right: min(calc(var(--u) * 120), 6.25vw);   /* 6.25vw = 120/1920: never more than the old share */
+  --card-width: min(calc(var(--u) * 560), 44vw);     /* shared by cards and passes */
+  --card-padding: calc(var(--u) * 30) calc(var(--u) * 34);
+  --card-slide: calc(var(--u) * 24);        /* slides in from the right by this much */
+  --card-margin-y: max(calc(var(--u) * 24), 16px, var(--safe-top), var(--safe-bottom));   /* a card never gets closer than this to the top or bottom of the screen (it scrolls inside instead) */
+  --card-title-size: calc(var(--u) * 30);
+  --card-text-size: max(calc(var(--u) * 17), var(--text-floor));
+  --card-scroll-fade: max(calc(var(--u) * 36), 28px);   /* fade at the bottom of a card whose text scrolls */
+  --card-small-size: max(calc(var(--u) * 13), var(--label-floor));   /* kicker and year line */
+
+  /* Bottom sheet (portrait layout): the card panel above the chapter bar.
+     px on purpose: phone-sized, the same in any portrait window. */
+  --sheet-gutter: 12px;                     /* left and right, plus the safe area */
+  --sheet-gap: 8px;                         /* above the chapter bar */
+  --sheet-max-width: 560px;                 /* tablets: centred, never wider */
+  --sheet-max-height: 0.42;                 /* share of the visible screen (--ui-h); a longer card scrolls inside */
+  --sheet-slide: 24px;                      /* cards and passes slide up by this much */
+  --sheet-card-padding: 14px 16px;
+  --sheet-card-title-size: calc(var(--u) * 24);
+
+  /* Boarding pass: a ticket with a main body and a stub. Colours follow the
+     palette (places blue for labels, route yellow for codes and progress).
+     Sized in its own unit, --pass-u: u, or less where the card is clamped
+     narrower than 560u, so the ticket keeps its proportions. */
+  --pass-u: min(var(--u), calc(var(--card-width) / 560));
+  --pass-font: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --pass-bg: var(--card-bg);
+  --pass-edge: #35497c;                     /* inset border and stub divider */
+  --pass-radius: calc(var(--u) * 14);        /* radius and border in u: the visiting card shares them */
+  --pass-border: calc(var(--u) * 1);
+  --pass-stub: calc(var(--pass-u) * 168);
+  --pass-notch: calc(var(--pass-u) * 9);         /* cut-outs where the stub meets the body */
+  --pass-divider: calc(var(--pass-u) * 1.5);     /* dashed line before the stub */
+  --pass-pad: calc(var(--pass-u) * 22);          /* body padding */
+  --pass-stub-pad: calc(var(--pass-u) * 18);     /* stub left/right padding (top/bottom = body padding) */
+  --pass-head-height: calc(var(--pass-u) * 24);  /* header row; the stub's top row matches it */
+  --pass-section-gap: calc(var(--pass-u) * 18);  /* header to codes; stub top row to seat/gate */
+  --pass-row-gap: calc(var(--pass-u) * 14);      /* field grid */
+  --pass-col-gap: calc(var(--pass-u) * 16);
+  --pass-label-size: calc(var(--pass-u) * 11);
+  --pass-label-tracking: 0.18em;
+  --pass-label-color: var(--neon-glow);
+  --pass-value-size: calc(var(--pass-u) * 14);
+  --pass-value-color: var(--neon-core);
+  --pass-code-size: calc(var(--pass-u) * 40);
+  --pass-code-tracking: 0.06em;
+  --pass-code-color: var(--route-glow);
+  --pass-city-size: calc(var(--pass-u) * 13);
+  --pass-city-tracking: 0.14em;
+  --pass-country-size: calc(var(--pass-u) * 12);
+  --pass-muted: #6f86b8;
+  --pass-rule: var(--state-border);         /* divider above the fields */
+  --pass-track-color: var(--country-border);
+  --pass-track-width: calc(var(--pass-u) * 1.5);
+  --pass-fill-color: var(--route-halo);     /* progress line, origin to the plane */
+  --pass-plane-size: calc(var(--pass-u) * 22);
+  --pass-plane-color: var(--route-glow);
+  --pass-stub-value-size: calc(var(--pass-u) * 26);
+  --pass-barcode-height: calc(var(--pass-u) * 44);
+  --pass-barcode-color: var(--neon-core);
+
+  /* ---- Interface (rail, buttons): solid dark, thin border, no blur ---- */
+  --ui-bg: #0b1124;
+  --ui-border: #35497c;
+  --ui-text: #d9e6ff;
+  --ui-muted: #8a9cc6;
+  --ui-font: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ui-font-size: max(calc(var(--u) * 12), 11px, var(--label-floor));   /* rail labels (all shown, small) */
+  --rail-label-color: var(--ui-muted);      /* the other chapters' labels; the active one is lit in the places blue */
+  --rail-left: calc(var(--u) * 24);
+  --rail-height: min(calc(var(--u) * 340), calc(var(--ui-h) - 150px));   /* in very short windows (a phone held sideways) it shortens, clear of the HUD above it */
+  --rail-padding: calc(var(--u) * 18);
+  --rail-width: calc(var(--u) * 30);
+  --rail-line-width: calc(var(--u) * 2);
+  --rail-line-color: #1f2f56;
+  --rail-dot-size: calc(var(--u) * 9);
+  --rail-ring-size: calc(var(--u) * 26);    /* focus ring around the dot */
+  --rail-hit-size: max(var(--rail-ring-size), 32px, var(--tap));   /* invisible hit area: at least 32px (44px on touch); gives way where two dots are closer (.rail-node) */
+
+  /* ---- Scroll hint (js/hint.js): "keep scrolling", once the visitor stops.
+     Timing is in PACING.hint; the wording in js/hint.js. */
+  --hint-font-size: max(calc(var(--u) * 13), 11px, var(--label-floor));
+  --hint-tracking: 0.2em;
+  --hint-color: var(--ui-text);             /* near-white */
+  --hint-chevron-color: var(--neon-glow);   /* places blue */
+  --hint-chevron-size: calc(var(--u) * 16);
+  --hint-gap: calc(var(--u) * 6);           /* text to chevron */
+  --hint-bob: calc(var(--u) * 5);           /* the chevron bobs this far down and back */
+  --hint-rise: calc(var(--u) * 8);          /* rises this far while fading in */
+  --hint-shadow: calc(var(--u) * 10);       /* soft ocean shadow behind it, over the map */
+  --hint-offset: calc(var(--u) * 16);       /* gap to the card or pass it sits by */
+  --hint-bottom: calc(var(--u) * 36);       /* no panel, wide layout: above the screen's bottom edge */
+  --hint-bar-gap: calc(var(--u) * 18);      /* no panel, portrait: above the chapter bar */
+  --hint-clearance: calc(var(--u) * 8);     /* kept from the screen edges and everything it must not cover */
+
+  /* ---- Skip buttons (js/skip.js): CONTACT and CV, top right, until the ending.
+     Solid dark pills, a thin route-yellow border and text. Fade timing is in
+     PACING.skip. */
+  --skip-top: calc(var(--u) * 24 + var(--safe-top));       /* level with the HUD */
+  --skip-right: calc(var(--u) * 28 + var(--safe-right));
+  --skip-height: max(calc(var(--u) * 36), 26px, var(--tap));   /* 44px on touch */
+  --skip-pad-x: max(calc(var(--u) * 16), 12px);
+  --skip-gap: max(calc(var(--u) * 10), 8px);              /* between the two, and what keeps clear below them */
+  --skip-font-size: max(calc(var(--u) * 13), 11px, var(--label-floor));
+  --skip-tracking: 0.16em;
+  --skip-icon-size: calc(var(--skip-font-size) * 1.1);    /* CONTACT's down arrow */
+  --skip-icon-gap: max(calc(var(--u) * 6), 5px);
+  --skip-border: 1px;
+  --skip-bg: var(--ui-bg);
+  --skip-color: var(--route-glow);                        /* border and text */
+  --skip-hover-bg: color-mix(in srgb, var(--route-glow) 14%, var(--ui-bg));
+  --skip-hover-color: var(--route-core);
+  --skip-bottom: calc(var(--skip-top) + var(--skip-height));   /* their lower edge */
+  --skip-clear: calc(var(--skip-bottom) + var(--skip-gap));    /* what sits under them starts here (short windows' cards) */
+
+  /* Chapter bar: the rail along the bottom edge in the portrait layout. px on
+     purpose (a thumb-sized control); the bottom safe area is added under it. */
+  --bar-height: 44px;
+  --bar-max-width: 560px;                   /* the five buttons stay within this, centred (tablets) */
+  --bar-line-width: 2px;                    /* progress line along the top edge */
+  --bar-dot-size: 8px;
+  --bar-font-size: max(11px, var(--label-floor));
+  --bar-label-color: var(--rail-label-color);
+
+  /* ---- Title screen (js/title.js): the typed name over the world view ---- */
+  --title-top: 0.5;                          /* centre of the name, as a share of the visible screen height from the top (below Georgia, which sits just above the name's end) */
+  --title-size: calc(var(--u) * 64);
+  /* The name is never wider than this, with room for the cursor on both
+     sides (so the name itself stays centred): its size shrinks to fit,
+     from the name's own width in em (measured by js/title.js from the
+     name in js/profile.js), so a long real name can't overflow. */
+  --title-max-width: calc(100vw - 2 * max(5vw, var(--safe-left), var(--safe-right)));
+  /* Portrait: the block sits above the map strip of the world view (whose
+     height follows the camera's world zoom), this far above it; its bottom
+     never rises above --title-bottom-min (a share of the visible screen). */
+  --title-strip-gap: 16px;
+  --title-bottom-min: 0.2;
+  --title-gutter: 16px;                      /* portrait: side margins */
+  --title-tracking: 0.08em;
+  --title-color: var(--neon-core);
+  --title-cursor-color: var(--neon-glow);
+  --title-cursor-blink: 1.06s;
+  --title-rise: calc(var(--u) * 10);        /* the name lifts this far while fading out */
+  /* Soft dark shadow behind the letters, to calm the borders under them */
+  --title-shadow-size: calc(var(--u) * 16);
+  --title-shadow-opacity: 0.9;
+
+  /* ---- Ending (js/ending.js): HTML content over the dimmed, frozen map ---- */
+  --ending-dim: 0.6;                         /* how dark the map gets behind the ending (0-1) */
+  --ending-width: min(calc(var(--u) * 1200), 100% - 32px);   /* never wider than the window (narrow windows, where u grows) */
+  --ending-pad: calc(var(--u) * 80);         /* top and bottom padding */
+  --ending-small-size: max(calc(var(--u) * 13), 12px);   /* small text, with a floor for small windows */
+  --ending-gap: calc(var(--u) * 24);         /* heading to the card row */
+
+  /* Visiting card (js/visiting-card.js): boarding-pass language. The CV
+     folder (later) takes a column of the same width beside it. */
+  --vcard-width: calc(var(--u) * 560);
+  --vcard-gap: calc(var(--u) * 80);          /* card to CV folder */
+  --vcard-pad: calc(var(--u) * 28) calc(var(--u) * 32);
+  --vcard-radius: var(--pass-radius);
+  --vcard-emblem-max: 30vw;                  /* route emblem's width cap; binds only on phone-sized screens */
+  --vcard-label-size: max(calc(var(--u) * 11), 10px, var(--label-floor));
+  --vcard-name-size: max(calc(var(--u) * 30), 20px);
+  --vcard-name-tracking: 0.06em;
+  --vcard-meta-size: max(calc(var(--u) * 14), 12px);
+  --vcard-line-size: max(calc(var(--u) * 15), 12px);
+  --vcard-icon-size: 1.15em;
+  --vcard-rise: calc(var(--u) * 24);         /* rises this far while appearing */
+  /* Back face: "Leave your card" form (flip timings are in PACING.vcard) */
+  --vcard-perspective: max(calc(var(--vcard-width) * 3.5), 1300px);   /* 3-4 card widths; a floor for small windows */
+  /* Both faces are solid: the old 90% ocean over the dimmed map, pre-blended. */
+  --vcard-bg: color-mix(in srgb, var(--ocean) 96%, var(--land));
+  --vcard-title-size: max(calc(var(--u) * 20), 16px);
+  --vcard-title-tracking: 0.14em;
+  --vcard-field-size: max(calc(var(--u) * 15), 13px, var(--field-floor));
+  --vcard-field-gap: calc(var(--u) * 12);    /* between field rows */
+  --vcard-field-col-gap: calc(var(--u) * 20); /* first name | last name */
+  --vcard-field-pad: calc(var(--u) * 5);     /* above and below the typed text */
+  --vcard-field-line: var(--pass-edge);      /* underline at rest */
+  --vcard-field-focus: var(--neon-glow);     /* underline and label while focused */
+  --vcard-note-size: var(--ending-small-size);
+  --vcard-check-size: 1.15em;                /* the consent checkbox: a square of the note text's size ... */
+  --vcard-check-fill: var(--ocean);          /* ... dark fill (darker than the card), */
+  --vcard-check-mark: var(--pass-value-color); /* ... near-white check mark, */
+  --vcard-check-stroke: max(calc(var(--u) * 2), 2px);   /* ... drawn this thick */
+  --vcard-flip-accent: var(--route-glow);    /* "Leave your card" button */
+
+  /* CV folder (beside the card) and CV viewer (js/cv-viewer.js; open/close
+     timings are in PACING.cv). Small text keeps a px floor for small windows. */
+  --cv-folder-width: max(calc(var(--u) * 340), 200px);
+  --cv-folder-gap: calc(var(--u) * 28);       /* folder to its caption */
+  --cv-folder-fill: color-mix(in srgb, var(--ocean) 92%, var(--land));
+  --cv-paper: color-mix(in srgb, var(--land) 70%, var(--ocean));
+  --cv-folder-lift: 8px;                      /* the paper lifts this far on hover/focus (in the folder's own 300 x 230 drawing units) */
+  --cv-width: calc(var(--u) * 900);           /* the sheet */
+  --cv-min-width: 720px;                      /* ... never narrower than this (unless the window is) */
+  --cv-max-height: 85vh;
+  --cv-backdrop: color-mix(in srgb, var(--ocean) 84%, transparent);   /* solid dim, no blur */
+  --cv-bg: var(--vcard-bg);                   /* the sheet is fully opaque */
+  --cv-pad: max(calc(var(--u) * 40), 20px);
+  --cv-rise: calc(var(--u) * 16);             /* the sheet rises this far while opening */
+  --cv-photo-size: max(calc(var(--u) * 96), 72px);
+  --cv-photo-radius: max(calc(var(--u) * 14), 8px);   /* 50% makes the photo frame a circle */
+  --cv-name-size: max(calc(var(--u) * 30), 22px);
+  --cv-label-size: max(calc(var(--u) * 11), 10px, var(--label-floor));
+  --cv-text-size: max(calc(var(--u) * 14), 12px);
+  --cv-small-size: max(calc(var(--u) * 13), 11.5px);
+  --cv-section-gap: max(calc(var(--u) * 28), 20px);
+  --cv-entry-gap: max(calc(var(--u) * 14), 10px);
+  --cv-col-gap: max(calc(var(--u) * 40), 24px);
+  --cv-accent: var(--route-glow);             /* "Download PDF" button */
+
+  /* ---- Atmosphere: screen overlays, not part of the zooming map ---- */
+  --vignette-strength: 0.35;       /* darkness at the screen edges (0-1) */
+  --vignette-start: 55%;           /* where the darkening begins */
+}
+
+/* Small and large viewport units where the browser has them (see --stage-h). */
+@supports (height: 1lvh) {
+  :root {
+    --stage-h: 100lvh;
+    --ui-h: 100svh;
+  }
+}
+
+/* ---- Layout modes (mobile): the one source of truth -------------------------------
+   --layout is "wide" (default) or "portrait"; the modifiers are 0 or 1.
+   js/layout.js reads them and fires "layoutchange". CSS rules for a mode
+   repeat its media query (portrait: the chapter bar, the visiting card). */
+:root {
+  --layout: wide;
+  --layout-short: 0;
+  --layout-touch: 0;
+}
+@media (max-aspect-ratio: 4/5) { :root { --layout: portrait; } }
+@media (max-height: 500px)     { :root { --layout-short: 1; } }
+@media (pointer: coarse) {
+  /* Touch: floors for tracked uppercase labels and story card text, 44px tap
+     targets. The boarding pass gets its floors with its compact layout. */
+  :root {
+    --layout-touch: 1;
+    --label-floor: 11px;
+    --text-floor: 15px;
+    --field-floor: 16px;
+    --tap: 44px;
+  }
+}
+
+/* ---- Page ---------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--ocean);
+  color: #e8ecf5;
+  font-family: system-ui, "Segoe UI", sans-serif;
+}
+/* Phones: no grey flash on tap, no font inflation in landscape, no
+   pull-to-refresh or bounce at the page ends (the root scroller only, so the
+   sticky stage is unaffected). No effect with a mouse. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+/* No double-tap zoom on the map and the controls; browser pinch zoom stays
+   (manipulation keeps pan and pinch-zoom). Never use a touch-action that
+   drops pinch-zoom. */
+.stage,
+button,
+a,
+label,
+input,
+textarea { touch-action: manipulation; }
+
+/* Scroll story: the map stage sticks to the screen for the whole page. Under
+   it, the story track gives the story its scroll length (PACING.screens);
+   after it, the ending scrolls over the stuck stage. */
+.story {
+  position: relative;
+}
+.stage {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  height: var(--stage-h);
+  overflow: hidden;
+  user-select: none;
+}
+.story-track {
+  height: calc(var(--story-screens, 13) * var(--stage-h));
+}
+
+/* Snap stops (touch only; js/snap.js, PACING.snap): a flick stops at the next
+   stop. The markers are 1 px tall (some engines skip empty snap areas) and
+   invisible; js/snap.js places them in px and turns snapping on and off with
+   .is-snapping (off while the page scrolls itself). Never with a mouse. */
+.snap-stops {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  pointer-events: none;
+}
+.snap-stop {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+.snap-stop.is-end {
+  top: auto;
+  bottom: 0;
+  scroll-snap-align: end;   /* the page bottom, whatever the toolbar is doing */
+}
+@media (pointer: coarse) {
+  html.is-snapping { scroll-snap-type: y mandatory; }
+}
+
+/* Ending dim: a screen overlay over the map and vignette, under the HUD and
+   cards. js/ending.js sets its opacity (0-1) as the ending scrolls in;
+   --ending-dim is how dark it gets. */
+.stage-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--ocean) calc(var(--ending-dim) * 100%), transparent);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+/* Backdrop mode (ending fully in): the map's animations pause, so it doesn't repaint. */
+.stage.is-backdrop #world .pulse { animation-play-state: paused; }
+.stage.is-zoomed { cursor: grab; }
+.stage.is-dragging { cursor: grabbing; }
+
+/* Vignette: a screen overlay that darkens the edges softly. It stays put
+   while the map zooms. */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center,
+    transparent var(--vignette-start),
+    rgb(0 0 0 / var(--vignette-strength)) 100%);
+}
+
+/* Placeholder HUD line (top left). The designed HUD comes in its own milestone. */
+.hud {
+  position: absolute;
+  top: calc(var(--u) * 24 + var(--safe-top));
+  left: calc(var(--u) * 28 + var(--safe-left));
+  z-index: 2;
+  font: calc(var(--u) * 15) / 1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.04em;
+  color: var(--neon-core);
+  white-space: pre;
+  pointer-events: none;
+}
+
+/* Read by screen readers, not shown. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The story as text for screen readers (js/story-text.js): hidden the same way,
+   but fixed, so a reader moving through it never scrolls the page. */
+.story-text {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+}
+
+/* ---- Title screen (js/title.js) ---------------------------------------------------
+   Sits straight on the world map (no plate). The name types out once on load.
+   Hidden outside the title section. */
+.title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--ui-h) * var(--title-top));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--ui-font);
+  text-shadow:
+    0 0 var(--title-shadow-size) color-mix(in srgb, var(--ocean) calc(var(--title-shadow-opacity) * 100%), transparent),
+    0 0 calc(var(--title-shadow-size) / 4) color-mix(in srgb, var(--ocean) calc(var(--title-shadow-opacity) * 100%), transparent);
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity var(--title-hide) ease, transform var(--title-hide) ease, visibility 0s;
+}
+.title.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(calc(-50% - var(--title-rise)));
+  transition: opacity var(--title-hide) ease, transform var(--title-hide) ease, visibility 0s linear var(--title-hide);
+}
+/* The invisible full name and the typed line share one grid cell: the block
+   is centred on the final width, the letters grow from a fixed left edge. */
+.title-name {
+  display: grid;
+  margin: 0;
+  font-size: min(var(--title-size), calc(var(--title-max-width) / var(--title-ems, 7)));   /* --title-ems: js/title.js */
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: var(--title-tracking);
+  color: var(--title-color);
+}
+.title-ghost,
+.title-line {
+  grid-area: 1 / 1;
+  white-space: pre;
+  text-transform: uppercase;   /* the data keeps normal capitalisation (js/profile.js) */
+}
+.title-ghost {
+  visibility: hidden;
+  margin-right: calc(-1 * var(--title-tracking));   /* no tracking after the last letter, so the letters themselves are centred */
+}
+.title-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  vertical-align: -0.12em;
+  margin-right: -0.6em;   /* takes no width: the name alone is centred, the cursor hangs past its end */
+  background: var(--title-cursor-color);
+  animation: title-cursor var(--title-cursor-blink) steps(1) infinite;
+}
+@keyframes title-cursor {
+  0%  { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ---- Card panel: story cards and boarding passes (right side) --------------------
+   Stacked in one spot; the active one fades and slides in after a short delay,
+   so the previous one has left first. Hidden ones are visibility: hidden
+   (no paint, not read out). Centred on the visible screen (--ui-h). */
+.cards {
+  position: absolute;
+  top: 0;
+  height: var(--ui-h);
+  right: max(var(--card-right), calc(var(--safe-right) + var(--sheet-gutter)));   /* the usual margin; only a phone's notch side pushes it in, by just enough (not added on top, which would move the card into the map's left part) */
+  width: var(--card-width);
+  z-index: 2;
+  pointer-events: none;
+}
+.card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  padding: var(--card-padding);
+  background: var(--card-bg);
+  border: calc(var(--u) * 1) solid var(--card-border);
+  border-radius: calc(var(--u) * 6);
+  color: var(--ui-text);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(var(--card-slide), -50%);
+  transition: opacity var(--card-fade) ease, transform var(--card-fade) ease, visibility 0s linear var(--card-fade);
+  /* Taller than its room (a phone, a short window, 200-300 % browser zoom):
+     the header stays and only the text scrolls (.card-text). The card's own
+     scroll is a last resort for a header taller than the room. */
+  max-height: calc(var(--ui-h) - 2 * var(--card-margin-y));
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}
+.card > * { flex: none; }
+/* Scrolls when the card is too tall; a soft fade at its bottom edge while
+   more text is below (classes from js/cards.js). */
+.card > .card-text {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}
+.card.is-overflowing:not(.is-at-end) > .card-text {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--card-scroll-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--card-scroll-fade)), transparent);
+}
+/* A mouse can scroll an overflowing card (cards otherwise let the wheel
+   through to the map). */
+.card.is-active.is-overflowing { pointer-events: auto; }
+/* Only where a card can be too tall to read (short windows, touch) does it take
+   pointer events, so it can be scrolled; elsewhere the mouse and the wheel
+   pass through to the map as before. Hidden ones are visibility: hidden. */
+@media (max-height: 500px), (pointer: coarse) {
+  .card,
+  .pass {
+    pointer-events: auto;
+    touch-action: manipulation;   /* scrolls and pinch-zooms, no double-tap zoom (as the stage) */
+  }
+}
+.card.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(0, -50%);
+  transition: opacity var(--card-fade) ease var(--card-delay), transform var(--card-fade) ease var(--card-delay), visibility 0s;
+}
+.card-kicker,
+.card-year {
+  margin: 0;
+  font: var(--card-small-size) / 1.3 var(--ui-font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-muted);
+}
+.card-title {
+  margin: calc(var(--u) * 12) 0 calc(var(--u) * 6);
+  font-size: var(--card-title-size);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--neon-core);
+}
+.card-year { color: var(--neon-glow); }
+.card-text {
+  margin: calc(var(--u) * 16) 0 0;
+  font-size: var(--card-text-size);
+  line-height: 1.6;
+}
+
+/* ---- Boarding pass ----------------------------------------------------------------
+   Grid: main body + stub. The two notches where they meet are real cut-outs
+   (mask), so the map shows through; rings in ::before/::after carry the
+   border around them. */
+.pass {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--pass-stub);
+  background: var(--pass-bg);
+  border-radius: var(--pass-radius);
+  box-shadow: inset 0 0 0 var(--pass-border) var(--pass-edge);
+  color: var(--pass-value-color);
+  font-family: var(--pass-font);
+  --notch-x: calc(100% - var(--pass-stub));
+  --notch-mask-top: radial-gradient(circle at var(--notch-x) 0, transparent var(--pass-notch), #000 calc(var(--pass-notch) + 0.5px));
+  --notch-mask-bottom: radial-gradient(circle at var(--notch-x) 100%, transparent var(--pass-notch), #000 calc(var(--pass-notch) + 0.5px));
+  -webkit-mask-image: var(--notch-mask-top), var(--notch-mask-bottom);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--notch-mask-top), var(--notch-mask-bottom);
+  mask-composite: intersect;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(var(--card-slide), -50%);
+  transition: opacity var(--pass-fade) ease, transform var(--pass-fade) ease, visibility 0s linear var(--pass-fade);
+}
+.pass.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(0, -50%);
+  transition: opacity var(--pass-fade) ease var(--pass-delay), transform var(--pass-fade) ease var(--pass-delay), visibility 0s;
+}
+.pass::before,
+.pass::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--notch-x) - var(--pass-notch) - var(--pass-border));
+  width: calc(2 * (var(--pass-notch) + var(--pass-border)));
+  height: calc(2 * (var(--pass-notch) + var(--pass-border)));
+  border: var(--pass-border) solid var(--pass-edge);
+  border-radius: 50%;
+}
+.pass::before { top: calc(-1 * (var(--pass-notch) + var(--pass-border))); }
+.pass::after { bottom: calc(-1 * (var(--pass-notch) + var(--pass-border))); }
+:where(.pass) :where(p, dl, dd) { margin: 0; }   /* zero specificity: component margins win */
+
+/* Label style: small, tracked, uppercase, places blue */
+.pass-brand,
+.pass-chip,
+.pass-fields dt,
+.pass-stub dt {
+  font-size: var(--pass-label-size);
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  text-transform: uppercase;
+  color: var(--pass-label-color);
+  white-space: nowrap;
+}
+
+.pass-body {
+  min-width: 0;
+  padding: var(--pass-pad);
+}
+.pass-head {
+  display: flex;
+  align-items: center;
+  height: var(--pass-head-height);
+  justify-content: space-between;
+  gap: calc(var(--pass-u) * 12);
+}
+.pass-brand {
+  display: flex;
+  gap: calc(var(--pass-u) * 12);
+}
+.pass-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--pass-u) * 6);
+  padding: calc(var(--pass-u) * 4) calc(var(--pass-u) * 10);
+  border: var(--pass-border) solid color-mix(in srgb, currentColor 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: var(--neon-glow);
+  transition: color var(--pass-status-fade) ease;
+}
+.pass-chip.is-flying { color: var(--route-glow); }
+.pass-chip-dot {
+  width: calc(var(--pass-u) * 6);
+  height: calc(var(--pass-u) * 6);
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Codes and the route track between them */
+.pass-route {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: calc(var(--pass-u) * 14);
+  margin-top: var(--pass-section-gap);
+}
+.pass-code {
+  font-size: var(--pass-code-size);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: var(--pass-code-tracking);
+  margin-right: calc(-1 * var(--pass-code-tracking));   /* no trailing letter space */
+  color: var(--pass-code-color);
+}
+.pass-track {
+  position: relative;
+  height: var(--pass-plane-size);
+}
+.pass-track-line,
+.pass-track-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--pass-track-width);
+  margin-top: calc(var(--pass-track-width) / -2);
+}
+.pass-track-line {
+  background: repeating-linear-gradient(90deg,
+    var(--pass-track-color) 0 calc(var(--pass-u) * 6), transparent 0 calc(var(--pass-u) * 11));
+}
+/* Solid line from the origin to the plane: scaled from the left (js/passes.js). */
+.pass-track-fill {
+  background: var(--pass-fill-color);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.pass-plane {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--pass-plane-size);
+  height: var(--pass-plane-size);
+  fill: var(--pass-plane-color);
+}
+
+/* City names under the codes, country (and state) beneath */
+.pass-places {
+  display: flex;
+  justify-content: space-between;
+  gap: calc(var(--pass-u) * 16);
+  margin-top: calc(var(--pass-u) * 10);
+}
+.pass-place {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pass-u) * 3);
+  min-width: 0;
+}
+.pass-place--to { text-align: right; }
+.pass-place--to .pass-city { margin-right: calc(-1 * var(--pass-city-tracking)); }   /* flush right: no trailing letter space */
+.pass-city {
+  font-size: var(--pass-city-size);
+  line-height: 1.2;
+  letter-spacing: var(--pass-city-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pass-country {
+  font-size: var(--pass-country-size);
+  line-height: 1.2;
+  color: var(--pass-muted);
+  white-space: nowrap;
+}
+
+/* Field grid: four even columns */
+.pass-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pass-row-gap) var(--pass-col-gap);
+  margin-top: calc(var(--pass-u) * 16);
+  padding-top: calc(var(--pass-u) * 16);
+  border-top: var(--pass-border) solid var(--pass-rule);
+}
+.pass-field { min-width: 0; }
+.pass-field--wide { grid-column: span 2; }
+.pass-fields dd {
+  margin-top: calc(var(--pass-u) * 5);
+  font-size: var(--pass-value-size);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Stub: on the body's rows. Top row level with the header, seat and gate
+   level with the codes, barcode bottom level with the last field row. */
+.pass-stub {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--pass-pad) var(--pass-stub-pad);
+  border-left: var(--pass-divider) dashed var(--pass-edge);
+}
+.pass-stub-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--pass-head-height);
+  gap: calc(var(--pass-u) * 8);
+  font-size: var(--pass-label-size);
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.pass-stub-route { color: var(--pass-code-color); }
+.pass-stub-big {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--pass-u) * 12);
+  margin-top: var(--pass-section-gap);
+}
+.pass-stub-big dd {
+  margin-top: calc(var(--pass-u) * 4);
+  font-size: var(--pass-stub-value-size);
+  line-height: 1;
+  color: var(--pass-value-color);
+}
+.pass-barcode {
+  display: block;
+  width: 100%;
+  height: var(--pass-barcode-height);
+  margin-top: auto;
+  fill: var(--pass-barcode-color);
+}
+
+/* ---- Touch and portrait: compact boarding pass, HUD floor ------------------------------
+   Under the portrait layout and on every touch screen (a phone held sideways,
+   tablets) the wide ticket would draw its text at 7-9px, so the boarding pass
+   is compact: in its own unit (u: the card is wide enough), every text at
+   least 11px, a narrower stub, two field columns in three rows (the passenger
+   takes the first row; Terminal and Group are left out), a shorter header (airline only; the
+   stub's top row has the route only). About 264px tall: it fits a phone's
+   bottom sheet and a landscape phone's screen. Must come before the portrait
+   block, whose sheet rules win where both apply.
+   The query must match --layout: portrait and --layout-touch. */
+@media (max-aspect-ratio: 4/5), (pointer: coarse) {
+  .hud { font-size: max(calc(var(--u) * 15), 12px); }
+  .pass {
+    max-height: calc(var(--ui-h) - 2 * var(--card-margin-y));
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--card-border) transparent;
+    --pass-u: var(--u);
+    --pass-stub: 110px;
+    --pass-pad: 14px;
+    --pass-stub-pad: 10px;
+    --pass-head-height: 22px;
+    --pass-section-gap: 12px;
+    --pass-row-gap: 8px;
+    --pass-col-gap: 12px;
+    --pass-label-size: max(calc(var(--u) * 11), 11px);
+    --pass-value-size: max(calc(var(--u) * 14), 13px);
+    --pass-code-size: max(calc(var(--u) * 30), 26px);
+    --pass-city-size: max(calc(var(--u) * 13), 11px);
+    --pass-country-size: max(calc(var(--u) * 12), 11px);
+    --pass-plane-size: 18px;
+    --pass-stub-value-size: max(calc(var(--u) * 22), 18px);
+    --pass-barcode-height: 34px;
+  }
+  .pass-brand span + span,
+  .pass-stub-top span + span { display: none; }
+  .pass-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  /* The passenger (the real name, "LOMIDZE / ZURAB") takes the whole first
+     row: in one column it only just fit at 390px and crowded its neighbour at
+     360px. Group goes too (as Terminal already did), so there are still three
+     rows and the pass keeps its height. */
+  .pass-field--wide { grid-column: 1 / -1; }
+  .pass-field[data-field="terminal"],
+  .pass-field[data-field="group"] { display: none; }
+  .pass-fields dd { margin-top: 3px; }
+  /* The notch rings as half rings inside the ticket: whole rings stick out
+     of it (their outer half is masked away anyway) and would make it
+     scroll by a few px. */
+  .pass::before,
+  .pass::after { height: calc(var(--pass-notch) + var(--pass-border)); }
+  .pass::before {
+    top: 0;
+    border-top: 0;
+    border-radius: 0 0 calc(var(--pass-notch) + var(--pass-border)) calc(var(--pass-notch) + var(--pass-border));
+  }
+  .pass::after {
+    bottom: 0;
+    border-bottom: 0;
+    border-radius: calc(var(--pass-notch) + var(--pass-border)) calc(var(--pass-notch) + var(--pass-border)) 0 0;
+  }
+}
+
+/* ---- Short windows: cards and passes clear of the skip buttons ----------------------
+   A phone held sideways (or 200-300 % browser zoom): a card or pass can be as
+   tall as the screen, and it shares the top right with the skip buttons, so
+   the panel starts under them. Before the portrait block, which wins where
+   both apply. */
+@media (max-height: 500px) {
+  .cards {
+    top: var(--skip-clear);
+    height: calc(var(--ui-h) - var(--skip-clear));
+  }
+  .card,
+  .pass { max-height: calc(var(--ui-h) - var(--skip-clear) - var(--card-margin-y)); }
+}
+
+/* ---- Portrait story layout ----------------------------------------------------------
+   Phones held upright (and other tall windows). The camera frames stops and
+   the plane in the top part (PACING.camera.portrait); cards and boarding
+   passes are a bottom sheet above the chapter bar; the HUD is short lines;
+   the title sits above the world view's map strip.
+   The query must match the one that sets --layout: portrait. */
+@media (max-aspect-ratio: 4/5) {
+  /* HUD: short lines (js/scroll-story.js), never smaller than 12px. It ends
+     short of the skip buttons (--skip-w: their width, js/skip.js) and wraps
+     there, at the gaps between its parts. */
+  .hud {
+    right: calc(var(--skip-right) + var(--skip-w, 0px) + var(--skip-gap));
+    font-size: max(calc(var(--u) * 15), 12px);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: hidden;
+  }
+
+  /* Title: its bottom edge this far above the map strip, which is centred
+     in the stage and as tall as the map at the world view's zoom. */
+  .title {
+    top: max(calc(var(--ui-h) * var(--title-bottom-min)),
+             calc(50% - 100vw * var(--camera-world-zoom) * var(--map-aspect) / 2 - var(--title-strip-gap)));
+    padding: 0 calc(var(--title-gutter) + var(--safe-right)) 0 calc(var(--title-gutter) + var(--safe-left));
+    transform: translateY(-100%);
+  }
+  .title.is-hidden { transform: translateY(calc(-100% - var(--title-rise))); }
+
+  /* Bottom sheet: fixed like the chapter bar, so it stays on it while a
+     phone's toolbar moves. Full width less the gutters (centred, capped on
+     tablets); cards and passes sit on its bottom edge and slide up. */
+  .cards {
+    position: fixed;
+    top: auto;
+    bottom: calc(var(--bar-height) + var(--safe-bottom) + var(--sheet-gap));
+    left: max(calc(var(--sheet-gutter) + var(--safe-left)), calc((100% - var(--sheet-max-width)) / 2));
+    right: max(calc(var(--sheet-gutter) + var(--safe-right)), calc((100% - var(--sheet-max-width)) / 2));
+    width: auto;
+    height: calc(var(--ui-h) * var(--sheet-max-height));
+  }
+  .card,
+  .pass {
+    top: auto;
+    bottom: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    pointer-events: auto;   /* a card longer than the sheet scrolls inside (hidden ones are visibility: hidden) */
+    transform: translateY(var(--sheet-slide));
+  }
+  .card.is-active,
+  .pass.is-active { transform: none; }
+  .card {
+    padding: var(--sheet-card-padding);
+    --card-title-size: var(--sheet-card-title-size);
+  }
+  .card-text {
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  .card,
+  .pass {
+    scrollbar-width: thin;
+    scrollbar-color: var(--card-border) transparent;
+  }
+
+}
+
+/* ---- Chapter rail (left edge) -------------------------------------------------- */
+.rail {
+  position: fixed;
+  left: calc(var(--rail-left) + var(--safe-left));
+  top: calc(var(--ui-h) / 2);   /* centre of the visible screen; doesn't move with a phone's toolbar */
+  z-index: 5;
+  width: var(--rail-width);
+  height: calc(var(--rail-height) + 2 * var(--rail-padding));
+  transform: translateY(-50%);
+  background: var(--ui-bg);
+  border: calc(var(--u) * 1) solid var(--ui-border);
+  border-radius: calc(var(--rail-width) / 2);
+  font: var(--ui-font-size) / 1.2 var(--ui-font);
+}
+.rail-track {
+  position: absolute;
+  left: 50%;
+  top: var(--rail-padding);
+  width: var(--rail-line-width);
+  height: var(--rail-height);
+  margin-left: calc(var(--rail-line-width) / -2);
+  background: var(--rail-line-color);
+}
+/* Progress fill: scaled from the top by render(p); transform only. */
+.rail-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--neon-glow);
+  transform-origin: top;
+  transform: scaleY(0);
+}
+.rail-nodes {
+  position: absolute;
+  inset: var(--rail-padding) 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rail-nodes li {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--at) * 1%);
+}
+/* The hit area: a --rail-hit-size square centred on the dot, except where a
+   neighbour is closer than that: then the two meet halfway between the dots,
+   so hit areas never overlap. --hit-top is its top edge, measured from the
+   dot; --gap-before / --gap-after (in % of --rail-span, the length the
+   nodes are spread over: the rail's inner height less the padding) come from
+   js/navigation.js. The dot, its label and the focus ring sit on the node's
+   point, wherever the area is. */
+.rail-node {
+  --rail-span: calc(var(--rail-height) - var(--u) * 2);   /* .rail-nodes: inside the rail's two 1u borders */
+  --hit-top: clamp(calc(var(--rail-span) * var(--gap-before) / -200),
+                   calc(var(--rail-hit-size) / -2),
+                   calc(var(--rail-span) * var(--gap-after) / 200 - var(--rail-hit-size)));
+  position: absolute;
+  left: calc(var(--rail-hit-size) / -2);
+  top: var(--hit-top);
+  width: var(--rail-hit-size);
+  height: var(--rail-hit-size);
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  font: inherit;
+  cursor: pointer;
+}
+.rail-dot {
+  position: absolute;
+  left: calc(50% - var(--rail-dot-size) / 2);
+  top: calc(-1 * var(--hit-top) - var(--rail-dot-size) / 2);
+  width: var(--rail-dot-size);
+  height: var(--rail-dot-size);
+  border-radius: 50%;
+  background: var(--ui-bg);
+  border: calc(var(--u) * 1.5) solid var(--ui-border);
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+/* Hover only where there is one: a tap must not leave a label "stuck" on. */
+@media (hover: hover) {
+  .rail-node:hover .rail-dot { border-color: var(--neon-glow); }
+}
+.rail-node.is-active .rail-dot {
+  background: var(--neon-glow);
+  border-color: var(--neon-core);
+  transform: scale(1.25);
+}
+.rail-label {
+  position: absolute;
+  left: calc(50% + var(--rail-ring-size) / 2 + var(--u) * 2);
+  top: calc(-1 * var(--hit-top));
+  padding: calc(var(--u) * 3) calc(var(--u) * 8);
+  white-space: nowrap;
+  background: var(--ui-bg);
+  border: calc(var(--u) * 1) solid var(--ui-border);
+  border-radius: calc(var(--u) * 4);
+  color: var(--rail-label-color);
+  transform: translate(0, -50%);
+  transition: color 0.2s ease;
+  pointer-events: none;
+}
+/* Every label always shows (small, muted); the active chapter's is lit in the
+   places blue, a hovered or focused one is near-white. */
+.rail-node:focus-visible .rail-label { color: var(--ui-text); }
+@media (hover: hover) {
+  .rail-node:hover .rail-label { color: var(--ui-text); }
+}
+.rail-node.is-active .rail-label { color: var(--neon-glow); }
+/* Focus ring: a circle around the dot, not around the (larger) hit area. */
+.rail-node:focus { outline: none; }
+.rail-node::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - var(--rail-ring-size) / 2);
+  top: calc(-1 * var(--hit-top) - var(--rail-ring-size) / 2);
+  width: var(--rail-ring-size);
+  height: var(--rail-ring-size);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.rail-node:focus-visible::after {
+  outline: calc(var(--u) * 2) solid var(--neon-glow);
+  outline-offset: calc(var(--u) * 1);
+}
+
+/* ---- Scroll hint (js/hint.js) -----------------------------------------------------
+   Placed by JS as it appears (--hint-x / --hint-y: its top-left corner on the
+   screen; transform only, never animated). It fades and rises in, fades out
+   without moving, and the chevron bobs while it shows. Never clickable. */
+.hint {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  transform: translate(var(--hint-x, 0px), var(--hint-y, 0px));
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0s linear var(--hint-fade-out);
+}
+.hint.is-shown {
+  visibility: visible;
+  transition: none;
+}
+.hint-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--hint-gap);
+  font: var(--hint-font-size) / 1 var(--ui-font);
+  letter-spacing: var(--hint-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--hint-color);
+  text-shadow: 0 0 var(--hint-shadow) var(--ocean), 0 0 calc(var(--hint-shadow) / 3) var(--ocean);
+  opacity: 0;
+  transform: translateY(var(--hint-rise));
+  transition: opacity var(--hint-fade-out) ease, transform 0s linear var(--hint-fade-out);
+}
+.hint.is-shown .hint-inner {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--hint-fade-in) ease-out, transform var(--hint-fade-in) ease-out;
+}
+.hint-text { margin-right: calc(-1 * var(--hint-tracking)); }   /* no trailing letter space, so it centres */
+.hint-chevron {
+  width: var(--hint-chevron-size);
+  height: calc(var(--hint-chevron-size) * 0.625);
+  overflow: visible;
+  fill: none;
+  stroke: var(--hint-chevron-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hint.is-shown .hint-chevron { animation: hint-bob var(--hint-bob-period) ease-in-out infinite; }
+@keyframes hint-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(var(--hint-bob)); }
+}
+/* Reduced motion: a plain fade, no rise, no bob. */
+@media (prefers-reduced-motion: reduce) {
+  .hint-inner,
+  .hint.is-shown .hint-inner { transform: none; }
+  .hint.is-shown .hint-chevron { animation: none; }
+}
+
+/* ---- Skip buttons (js/skip.js) -----------------------------------------------------
+   CONTACT and CV in the top-right corner, outside the stage, on every layout.
+   They fade out in the ending and while the CV viewer is open (visibility
+   hidden then, so Tab skips them); opacity only. */
+.skip {
+  position: fixed;
+  top: var(--skip-top);
+  right: var(--skip-right);
+  z-index: 6;
+  display: flex;
+  gap: var(--skip-gap);
+  transition: opacity var(--skip-fade) ease, visibility 0s;
+}
+.skip.is-away,
+.is-cv-open .skip {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--skip-fade) ease, visibility 0s linear var(--skip-fade);
+}
+.skip-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--skip-icon-gap);
+  height: var(--skip-height);
+  min-width: var(--skip-height);
+  margin: 0;
+  padding: 0 var(--skip-pad-x);
+  background: var(--skip-bg);
+  border: var(--skip-border) solid var(--skip-color);
+  border-radius: calc(var(--skip-height) / 2);
+  color: var(--skip-color);
+  font: var(--skip-font-size) / 1 var(--ui-font);
+  letter-spacing: var(--skip-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.skip-text:last-child { margin-right: calc(-1 * var(--skip-tracking)); }   /* no trailing letter space, so "CV" centres */
+.skip-icon {
+  flex: none;
+  width: var(--skip-icon-size);
+  height: var(--skip-icon-size);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Hover only where there is one (a tap would leave it stuck); touch gets the pressed look. */
+@media (hover: hover) {
+  .skip-button:hover { background: var(--skip-hover-bg); color: var(--skip-hover-color); }
+}
+@media (pointer: coarse) {
+  .skip-button:active { background: var(--skip-hover-bg); color: var(--skip-hover-color); }
+}
+.skip-button:focus { outline: none; }
+.skip-button:focus-visible {
+  outline: max(calc(var(--u) * 2), 2px) solid var(--neon-glow);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip,
+  .skip.is-away,
+  .is-cv-open .skip,
+  .skip-button { transition: none; }
+}
+
+/* ---- Chapter bar (portrait layout) ----------------------------------------------
+   The same nav and buttons as the rail, laid along the bottom edge: five equal
+   tap targets with their labels, the active one lit in the places blue. The
+   progress line runs along the top edge, over the border (js/navigation.js
+   scales it on X here). Anchored to the bottom (not to --ui-h), so it stays on
+   the screen's edge while a phone's toolbar collapses or returns; the safe
+   area (home indicator) is padding under the buttons. The scroll hint, the
+   card panel and the ending keep clear of it.
+   The query must match the one that sets --layout: portrait. */
+@media (max-aspect-ratio: 4/5) {
+  .rail {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    height: calc(1px + var(--bar-height) + var(--safe-bottom));   /* border + buttons + safe area */
+    padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+    transform: none;
+    border: 0;
+    border-top: 1px solid var(--ui-border);
+    border-radius: 0;
+    font: var(--bar-font-size) / 1.2 var(--ui-font);
+  }
+  .rail-track {
+    left: 0;
+    top: -1px;   /* on the top border, which is its track */
+    width: 100%;
+    height: var(--bar-line-width);
+    margin-left: 0;
+    background: none;
+  }
+  .rail-fill {
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+  .rail-nodes {
+    position: relative;
+    inset: auto;
+    display: flex;
+    max-width: var(--bar-max-width);
+    height: var(--bar-height);
+    margin: 0 auto;
+  }
+  .rail-nodes li {
+    position: static;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .rail-node {
+    position: relative;
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+  }
+  .rail-dot {
+    position: static;
+    width: var(--bar-dot-size);
+    height: var(--bar-dot-size);
+    border-width: 1.5px;
+  }
+  .rail .rail-nodes .rail-label {   /* beats the rail's hover / active / focus label rules */
+    position: static;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    color: var(--bar-label-color);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 1;
+    transform: none;
+  }
+  .rail .rail-nodes .is-active .rail-label { color: var(--neon-glow); }
+  .rail-node::after {
+    inset: 4px 3px;
+    width: auto;
+    height: auto;
+    border-radius: 6px;
+  }
+  .rail-node:focus-visible::after {
+    outline-width: 2px;
+    outline-offset: 0;
+  }
+
+  /* The ending's last element (Back to start) scrolls clear of the bar. */
+  :root { --bottom-clear: calc(1px + var(--bar-height) + var(--safe-bottom)); }
+}
+
+/* ---- Ending: normal content scrolling over the stuck stage --------------------- */
+.ending {
+  position: relative;
+  z-index: 1;   /* above the stage */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: var(--stage-h);
+  /* Bottom: clear of the chapter bar (portrait) and the home indicator, plus
+     the on-screen keyboard while it is up (js/visiting-card.js sets --kb-inset),
+     so Send can always scroll above it. All 0 with a mouse in a wide window. */
+  padding: var(--ending-pad) var(--safe-right) calc(var(--ending-pad) + var(--bottom-clear) + var(--kb-inset, 0px)) var(--safe-left);
+  overflow-x: clip;   /* the card swinging toward the viewer can't widen the page; clip (not hidden) keeps sticky and the y axis alone */
+  color: var(--ui-text);
+  font-family: var(--ui-font);
+}
+.ending-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--ending-width);
+}
+.ending-kicker {
+  margin: 0;
+  font-size: var(--ending-small-size);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ui-muted);
+}
+
+/* ---- Ending row: the visiting card | the CV folder ------------------------------ */
+/* Two rows: the card (row 1) and its action bar (row 2). The card's wrap
+   spans both through a subgrid, so the CV folder, in row 1 only, is exactly
+   as tall as the card itself. */
+.ending-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, var(--vcard-width)));   /* card | CV folder; both narrow together if the window is narrower than the row */
+  grid-template-rows: auto auto;
+  column-gap: var(--vcard-gap);
+  align-items: start;
+  margin-top: var(--ending-gap);
+}
+.vcard-wrap {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-rows: subgrid;
+  opacity: 0;
+  transform: translateY(var(--vcard-rise));
+}
+.cv-wrap {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: translateY(var(--vcard-rise));
+}
+/* Beside the card the folder never makes the row taller than the card: without
+   the form's back face the card is shorter than the folder button (its hit
+   padding included), and the folder would sit lower than the card. Size
+   containment gives the wrap no height of its own; it stretches to the card's
+   row, centres the folder there, and the button's padding overhangs. Where the
+   row stacks (under 900px) the wrap keeps its own height. */
+@media (min-width: 900px) {
+  .cv-wrap { contain: size; align-content: center; }   /* the auto track is the folder's own height: centre it on the card's row */
+}
+/* Appears once, the first time it's in view (js/visiting-card.js); the CV
+   folder (the card's next sibling) appears with it. */
+.vcard-wrap.is-in,
+.vcard-wrap.is-in ~ .cv-wrap {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--vcard-appear) ease-out, transform var(--vcard-appear) cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vcard-wrap.is-in,
+  .vcard-wrap.is-in ~ .cv-wrap { transition: none; }
+}
+
+/* ---- Visiting card: same language as the boarding pass ------------------------ */
+/* Two faces share one grid cell: the card is as tall as the taller one (the
+   form); the front stretches to match, its content kept at the top. The card
+   turns around its vertical axis; the hidden face is inert (js). */
+.vcard-scene { perspective: var(--vcard-perspective); }
+.vcard {
+  display: grid;
+  /* scrollIntoView on touch (js/visiting-card.js showCard) keeps the card clear of the chapter bar and the home indicator */
+  scroll-margin: 16px 0 calc(var(--bottom-clear) + 16px);
+  transform-style: preserve-3d;
+  transition: transform var(--vcard-flip) cubic-bezier(0.55, 0, 0.45, 1);   /* symmetric: edge-on (90°) is at exactly half the time, when the faces switch */
+  color: var(--pass-value-color);
+  font-family: var(--pass-font);
+}
+.vcard.is-flipped { transform: rotateY(180deg); }
+.vcard-face {
+  grid-area: 1 / 1;
+  min-width: 0;
+  background: var(--vcard-bg);
+  border-radius: var(--vcard-radius);
+  box-shadow: inset 0 0 0 var(--pass-border) var(--pass-edge);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.vcard-front {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto 1fr;   /* label, name, role at the top; the contact lines sit at the bottom */
+  padding: var(--vcard-pad);
+}
+/* Focused by the CONTACT button (js/skip.js), not a tab stop: a ring inside
+   the edge (the card clips its overflow in portrait and on touch). */
+.vcard-front:focus { outline: none; }
+.vcard-front:focus-visible {
+  outline: max(calc(var(--u) * 2), 2px) solid var(--neon-glow);
+  outline-offset: calc(-1 * max(calc(var(--u) * 2), 2px));
+}
+.vcard-back {
+  transform: rotateY(180deg);
+  display: grid;
+  margin: 0;
+  padding: var(--vcard-pad);
+}
+/* Only one face is ever visible: each face's visibility switches at the halfway
+   point of the turn (half of --vcard-flip), when it is edge-on. No opacity. */
+.vcard:not(.is-fade) .vcard-face { transition: visibility 0s linear calc(var(--vcard-flip) / 2); }
+.vcard:not(.is-fade) .vcard-back,
+.vcard:not(.is-fade).is-flipped .vcard-front { visibility: hidden; }
+.vcard:not(.is-fade).is-flipped .vcard-back { visibility: visible; }
+/* No 3D, or reduced motion: no turning, the faces swap (crossfade; at once for reduced motion). */
+.vcard.is-fade { transform: none; transition: none; }
+.vcard.is-fade .vcard-face {
+  transform: none;
+  backface-visibility: visible;
+  transition: opacity var(--vcard-flip-fade) ease;
+}
+.vcard.is-fade .vcard-back,
+.vcard.is-fade.is-flipped .vcard-front { opacity: 0; pointer-events: none; }
+.vcard.is-fade.is-flipped .vcard-back { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .vcard.is-fade .vcard-face { transition: none; }
+}
+/* Portrait and touch (always .is-fade there, js/visiting-card.js): the card
+   takes the shown face's own height, so the front isn't stretched to the
+   form's. The hidden face leaves the flow, and the card clips it (rounded
+   corners) while it fades out. Flat: nothing turns here. The card eases
+   between the two heights (js sets them while swapping), so what is under it
+   doesn't jump. The query must match --layout (portrait) and --layout-touch. */
+@media (max-aspect-ratio: 4/5), (pointer: coarse) {
+  .vcard.is-fade {
+    position: relative;
+    overflow: hidden;
+    overflow: clip;
+    border-radius: var(--vcard-radius);
+    transform-style: flat;
+    transition: height var(--vcard-flip-height) cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .vcard.is-fade:not(.is-flipped) .vcard-back,
+  .vcard.is-fade.is-flipped .vcard-front {
+    position: absolute;
+    inset: 0 0 auto;
+  }
+}
+:where(.vcard) :where(p, h3, ul) { margin: 0; }   /* zero specificity: component margins win */
+.vcard-kicker {
+  grid-column: 1;
+  font-size: var(--vcard-label-size);
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  text-transform: uppercase;
+  color: var(--pass-label-color);
+}
+.vcard-emblem {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: start;
+  /* u, but never wider than --vcard-emblem-max (phones, where u has grown) */
+  --emblem-u: min(var(--u), calc(var(--vcard-emblem-max) / var(--emblem-w)));
+  width: calc(var(--emblem-u) * var(--emblem-w));
+  height: calc(var(--emblem-u) * var(--emblem-h));
+  overflow: visible;
+}
+.vcard-emblem-glow,
+.vcard-emblem-arc {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.vcard-emblem-glow { stroke: var(--route-halo); stroke-width: 3.5; opacity: 0.22; }
+.vcard-emblem-arc { stroke: var(--route-glow); stroke-width: 1.2; }
+.vcard-emblem-ring { fill: none; stroke: var(--neon-glow); stroke-width: 0.8; opacity: 0.45; }
+.vcard-emblem-dot { fill: var(--neon-core); stroke: var(--neon-glow); stroke-width: 1.2; }
+.vcard-name {
+  grid-column: 1;
+  margin-top: calc(var(--u) * 14);
+  font-size: var(--vcard-name-size);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--vcard-name-tracking);
+  color: var(--pass-value-color);
+  text-transform: uppercase;   /* the data keeps normal capitalisation (js/profile.js) */
+  overflow-wrap: anywhere;
+}
+.vcard-role {
+  grid-column: 1;
+  margin-top: calc(var(--u) * 8);
+  font-size: var(--vcard-meta-size);
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  color: var(--pass-muted);
+}
+.vcard-lines {
+  grid-column: 1 / -1;
+  align-self: end;   /* anchored to the bottom of the card, divider above */
+  display: grid;
+  gap: calc(var(--u) * 10);
+  margin-top: calc(var(--u) * 20);
+  padding: calc(var(--u) * 18) 0 0;
+  border-top: var(--pass-border) solid var(--pass-rule);
+  list-style: none;
+  font-size: var(--vcard-line-size);
+  line-height: 1.3;
+}
+.vcard-lines li {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 12);
+  min-width: 0;
+}
+.vcard-lines a,
+.vcard-lines span:not(.visually-hidden) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--pass-value-color);
+}
+.vcard-lines a {
+  text-decoration: none;
+  border-bottom: var(--pass-border) solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+@media (hover: hover) {
+  .vcard-lines a:hover { color: var(--neon-glow); border-bottom-color: currentColor; }
+}
+/* Touch: the card's three lines are even 44px rows (--tap), so the links can be hit with a thumb. */
+@media (pointer: coarse) {
+  .vcard-lines { gap: 0; }
+  .vcard-lines li { min-height: var(--tap); }
+  .vcard-lines a { display: flex; align-items: center; min-height: var(--tap); }
+}
+.vcard-lines a:focus { outline: none; }
+.vcard-lines a:focus-visible {
+  outline: calc(var(--u) * 2) solid var(--neon-glow);
+  outline-offset: calc(var(--u) * 3);
+  border-radius: calc(var(--u) * 2);
+}
+.vcard-icon {
+  flex: none;
+  width: var(--vcard-icon-size);
+  height: var(--vcard-icon-size);
+  fill: none;
+  stroke: var(--pass-label-color);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- Back face: the "Leave your card" form ---------------------------------------- */
+/* Form and success state share one cell, so the face never changes height. */
+.vcard-back > * { grid-area: 1 / 1; min-width: 0; }
+.vcard-form-body {
+  position: relative;   /* anchors the off-screen honeypot */
+  display: grid;
+  align-content: start;
+}
+.vcard-form-title {
+  font-size: var(--vcard-title-size);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--vcard-title-tracking);
+  text-transform: uppercase;
+  color: var(--pass-value-color);
+}
+.vcard-form-title:focus { outline: none; }   /* focused by script on touch (instead of a field), not a tab stop */
+.vcard-form-sub {
+  margin-top: calc(var(--u) * 6);
+  font-size: var(--vcard-label-size);
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  text-transform: uppercase;
+  color: var(--pass-muted);
+}
+.vcard-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vcard-field-gap) var(--vcard-field-col-gap);
+  margin-top: calc(var(--u) * 16);
+  padding-top: calc(var(--u) * 16);
+  border-top: var(--pass-border) solid var(--pass-rule);
+}
+.vcard-field { display: grid; min-width: 0; }
+.vcard-field--wide { grid-column: 1 / -1; }
+.vcard-field label {
+  font-size: var(--vcard-label-size);
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  text-transform: uppercase;
+  color: var(--pass-label-color);
+  transition: color 0.2s ease;
+}
+.vcard-field:focus-within label { color: var(--vcard-field-focus); }
+.vcard-field input,
+.vcard-field textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--vcard-field-pad) 0;
+  background: transparent;
+  border: 0;
+  border-bottom: var(--pass-border) solid var(--vcard-field-line);
+  border-radius: 0;
+  color: var(--pass-value-color);
+  font: var(--vcard-field-size) / 1.35 var(--pass-font);
+  letter-spacing: 0.04em;
+  caret-color: var(--vcard-field-focus);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.vcard-field textarea { resize: none; }
+/* Fields keep clear of the keyboard / chapter bar when the browser scrolls one into view */
+.vcard-field,
+.vcard-consent,
+.vcard-send-row,
+.vcard-hint { scroll-margin: 20px 0 calc(var(--bottom-clear) + 20px); }
+.vcard-field input:focus,
+.vcard-field textarea:focus {
+  outline: none;
+  border-bottom-color: var(--vcard-field-focus);
+  box-shadow: 0 calc(var(--u) * 1) 0 0 var(--vcard-field-focus);   /* underline thickens to 2u */
+}
+.vcard-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--u) * 10);
+  margin-top: calc(var(--u) * 14);
+  font-size: var(--vcard-note-size);
+  line-height: 1.35;
+  color: var(--ui-muted);
+  cursor: pointer;
+}
+/* A real checkbox, drawn like the card: dark fill, the pass border colour that
+   turns the places blue while focused, a check mark in the near-white core
+   colour (drawn on ::before). appearance: none keeps it an input: keyboard
+   operable (Space), in the form, with the label's whole text as its tap area. */
+.vcard-consent input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: var(--vcard-check-size);
+  height: var(--vcard-check-size);
+  margin: 0.1em 0 0;
+  background: var(--vcard-check-fill);
+  border: var(--pass-border) solid var(--pass-edge);
+  border-radius: calc(var(--u) * 4);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.vcard-consent input::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28%;
+  height: 56%;
+  border: solid var(--vcard-check-mark);
+  border-width: 0 var(--vcard-check-stroke) var(--vcard-check-stroke) 0;
+  transform: translate(-50%, -62%) rotate(45deg) scale(0);
+  transition: transform 0.12s ease-out;
+}
+.vcard-consent input:checked::before { transform: translate(-50%, -62%) rotate(45deg) scale(1); }
+.vcard-consent input:focus { border-color: var(--vcard-field-focus); }
+.vcard-consent input:focus-visible {
+  outline: calc(var(--u) * 2) solid var(--neon-glow);
+  outline-offset: calc(var(--u) * 2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vcard-consent input,
+  .vcard-consent input::before { transition: none; }
+}
+/* Honeypot: clipped to nothing, not hidden with display/visibility (bots skip
+   those) and not moved off-screen (the rotated face would mirror it into a
+   wide scrollable area). */
+.vcard-hp {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Touch: every field, the checkbox row and the buttons are 44px tap targets,
+   the typed text is 16px (--field-floor), the checkbox is larger, and the two
+   name fields stack on a phone-width card. */
+@media (pointer: coarse) {
+  .vcard-field input,
+  .vcard-field textarea { min-height: var(--tap); }
+  .vcard-consent { align-items: center; min-height: var(--tap); }
+  .vcard-consent input { width: max(var(--vcard-check-size), 24px); height: max(var(--vcard-check-size), 24px); margin: 0; }
+}
+@media (pointer: coarse) and (max-width: 479px) {
+  .vcard-fields { grid-template-columns: minmax(0, 1fr); }
+}
+.vcard-send-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(var(--u) * 8) calc(var(--u) * 16);
+  margin-top: calc(var(--u) * 16);
+}
+@media (pointer: coarse) { .vcard-send-row { gap: 10px 16px; } }
+.vcard-note {
+  font-size: var(--vcard-note-size);
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: var(--ui-muted);
+}
+.vcard-hint {
+  margin-top: calc(var(--u) * 8);
+  min-height: 1.35em;   /* room for one line, so the hint appearing doesn't move anything */
+  font-size: var(--vcard-note-size);
+  line-height: 1.35;
+  color: var(--ui-muted);
+}
+.ui-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (hover: hover) {
+  .ui-button:disabled:hover { border-color: var(--ui-border); color: var(--ui-text); }
+}
+/* Success state, over the form in the same cell */
+.vcard-done {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: calc(var(--u) * 20);
+  visibility: hidden;
+}
+/* inherit, not visible: the face's own visibility (hidden while turned away) wins */
+.vcard-back.is-done .vcard-done { visibility: inherit; }
+.vcard-back.is-done .vcard-form-body { visibility: hidden; }
+.vcard-done-text {
+  font-size: var(--vcard-field-size);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--pass-value-color);
+}
+
+/* "Leave your card": the one yellow-accent button (movement colour) */
+.ui-button.vcard-flip {
+  border-color: color-mix(in srgb, var(--vcard-flip-accent) 55%, transparent);
+  color: var(--vcard-flip-accent);
+}
+.ui-button.vcard-flip .ui-button-label--alt { color: var(--vcard-flip-accent); }
+@media (hover: hover) {
+  .ui-button.vcard-flip:hover { border-color: var(--vcard-flip-accent); color: var(--neon-core); }
+}
+/* "Email me": a real mailto link in the card's action bar, same look as its buttons, with a mail icon */
+.ui-button.vcard-mail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+}
+.ui-button.vcard-mail .vcard-icon {
+  width: 1.3em;
+  height: 1.3em;
+  stroke: currentColor;   /* follows the label through hover, press and focus */
+}
+.ui-button[aria-pressed="true"] .ui-button-label { visibility: hidden; }
+.ui-button[aria-pressed="true"] .ui-button-label--alt { visibility: visible; }
+
+/* Action bar under the card */
+.vcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--u) * 12);
+  margin-top: calc(var(--u) * 14);
+}
+@media (pointer: coarse) {
+  .vcard-actions { gap: 12px; margin-top: 14px; }   /* wraps into rows of 44px buttons with room between */
+}
+
+/* Narrow windows: one column, the card stacks normally. */
+@media (max-width: 899px) {
+  .ending-inner { width: min(100% - 32px, 480px); }
+  .ending-row { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; width: 100%; }
+  .vcard-hint { min-height: 2.7em; }   /* the hint can wrap to two lines here */
+  .cv-wrap { grid-column: 1; grid-row: 3; margin-top: calc(var(--u) * 40); padding: 16px 0; }   /* stacks under the card; no card to match, so it takes its own height */
+  /* The caption goes under the folder: beside it, it ran out of the column (cut off on phones). */
+  .cv-folder { flex-direction: column; max-width: 100%; }
+  .cv-folder-art { max-width: 100%; }
+}
+
+/* ---- Interface buttons in the ending (Back to start, card actions) --------------- */
+.ui-button,
+.back-to-start {
+  padding: calc(var(--u) * 8) calc(var(--u) * 18);
+  background: var(--ui-bg);
+  border: calc(var(--u) * 1) solid var(--ui-border);
+  border-radius: calc(var(--u) * 4);
+  color: var(--ui-text);
+  font: var(--ending-small-size) / 1.2 var(--ui-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+/* Hover only where there is a hover (a tap would leave it stuck); touch gets
+   the pressed look instead. */
+@media (hover: hover) {
+  .ui-button:hover,
+  .back-to-start:hover { border-color: var(--neon-glow); color: var(--neon-glow); }
+}
+@media (pointer: coarse) {
+  .ui-button:active:not(:disabled),
+  .back-to-start:active { border-color: var(--neon-glow); color: var(--neon-glow); }
+}
+.ui-button:focus,
+.back-to-start:focus { outline: none; }
+.ui-button:focus-visible,
+.back-to-start:focus-visible {
+  outline: calc(var(--u) * 2) solid var(--neon-glow);
+  outline-offset: calc(var(--u) * 2);
+}
+/* Two labels in one cell, so a label swap ("Copy email" -> "Copied") keeps the width. */
+.ui-button { display: inline-grid; }
+.ui-button-label { grid-area: 1 / 1; }
+.ui-button-label--alt { visibility: hidden; color: var(--neon-glow); }
+.ui-button.is-done .ui-button-label { visibility: hidden; }
+.ui-button.is-done .ui-button-label--alt { visibility: visible; }
+/* A third label for "it didn't work" (Copy email: "Selected") */
+.ui-button-label--fail { visibility: hidden; color: var(--route-glow); }
+.ui-button.is-failed .ui-button-label { visibility: hidden; }
+.ui-button.is-failed .ui-button-label--fail { visibility: visible; }
+
+.back-to-start { margin-top: calc(var(--u) * 48); }   /* last thing in the ending */
+
+/* Touch: 44px tap targets (--tap), label centred in the taller button. The
+   form's fields and checkbox get theirs with the form (mobile step 6). */
+@media (pointer: coarse) {
+  .ui-button,
+  .back-to-start { min-width: var(--tap); min-height: var(--tap); }
+  .ui-button { align-content: center; }
+}
+
+/* ---- CV folder (js/cv-viewer.js): a neon folder button beside the card ------------- */
+.cv-folder {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-folder-gap);
+  padding: calc(var(--u) * 16) calc(var(--u) * 20);
+  background: none;
+  border: 0;
+  border-radius: var(--pass-radius);
+  color: var(--ui-text);
+  font-family: var(--pass-font);
+  cursor: pointer;
+}
+.cv-folder:focus { outline: none; }
+.cv-folder:focus-visible {
+  outline: calc(var(--u) * 2) solid var(--neon-glow);
+  outline-offset: calc(var(--u) * 2);
+}
+.cv-folder-art {
+  flex: none;
+  width: var(--cv-folder-width);
+  height: auto;
+  overflow: visible;
+}
+.cv-folder-panel,
+.cv-folder-sheet {
+  stroke: var(--pass-edge);
+  stroke-width: var(--pass-divider);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 0.2s ease;
+}
+.cv-folder-panel { fill: var(--cv-folder-fill); }
+.cv-folder-sheet { fill: var(--cv-paper); }
+.cv-folder-line {
+  fill: none;
+  stroke: var(--route-glow);
+  stroke-width: calc(var(--u) * 2);
+  stroke-linecap: round;
+  opacity: 0.85;
+  vector-effect: non-scaling-stroke;
+}
+.cv-folder-paper { transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.cv-folder-text {
+  fill: var(--neon-glow);
+  font: 500 46px var(--pass-font);
+  letter-spacing: 0.22em;
+  text-anchor: middle;
+  transform: translateX(0.11em);   /* the tracking adds space after the last letter; this re-centres the word */
+}
+.cv-folder-caption {
+  font-size: var(--cv-label-size);
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  color: var(--pass-label-color);
+  transition: color 0.2s ease;
+}
+/* The lift and glow follow hover only where there is a hover (on a phone a tap
+   would leave it stuck after the viewer closes); keyboard focus and, on touch,
+   the press itself show it everywhere. */
+.cv-folder:focus-visible .cv-folder-paper { transform: translateY(calc(var(--cv-folder-lift) * -1)); }
+.cv-folder:focus-visible .cv-folder-panel,
+.cv-folder:focus-visible .cv-folder-sheet { stroke: var(--neon-glow); }
+.cv-folder:focus-visible .cv-folder-caption { color: var(--neon-core); }
+@media (hover: hover) {
+  .cv-folder:hover .cv-folder-paper { transform: translateY(calc(var(--cv-folder-lift) * -1)); }
+  .cv-folder:hover .cv-folder-panel,
+  .cv-folder:hover .cv-folder-sheet { stroke: var(--neon-glow); }
+  .cv-folder:hover .cv-folder-caption { color: var(--neon-core); }
+}
+@media (pointer: coarse) {
+  .cv-folder { min-width: var(--tap); min-height: var(--tap); }
+  .cv-folder:active .cv-folder-paper { transform: translateY(calc(var(--cv-folder-lift) * -1)); }
+  .cv-folder:active .cv-folder-panel,
+  .cv-folder:active .cv-folder-sheet { stroke: var(--neon-glow); }
+  .cv-folder:active .cv-folder-caption { color: var(--neon-core); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-folder-paper { transition: none; }
+  .cv-folder:hover .cv-folder-paper,
+  .cv-folder:active .cv-folder-paper,
+  .cv-folder:focus-visible .cv-folder-paper { transform: none; }
+}
+
+/* ---- CV viewer: a modal sheet over everything -------------------------------------- */
+/* Hidden = visibility: hidden (so it can fade out), shown by .is-open. Solid
+   dimmed backdrop, fully opaque sheet, no blur. A direct child of <body>. */
+.cv-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: max(calc(var(--u) * 40), 16px);
+  background: var(--cv-backdrop);
+  overscroll-behavior: contain;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--cv-close) ease, visibility 0s linear var(--cv-close);
+}
+.cv-modal.is-open {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity var(--cv-open) ease, visibility 0s;
+}
+.cv-sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(max(var(--cv-width), var(--cv-min-width)), 100%);
+  max-height: var(--cv-max-height);
+  overflow: hidden;
+  background: var(--cv-bg);
+  border-radius: var(--pass-radius);
+  box-shadow: inset 0 0 0 var(--pass-border) var(--pass-edge);
+  color: var(--pass-value-color);
+  font-family: var(--pass-font);
+  transform: translateY(var(--cv-rise));
+  transition: transform var(--cv-close) ease;
+}
+.cv-modal.is-open .cv-sheet {
+  transform: none;
+  transition: transform var(--cv-open) cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@supports (height: 1dvh) {
+  .cv-sheet { max-height: min(var(--cv-max-height), 85dvh); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-modal, .cv-modal.is-open, .cv-sheet, .cv-modal.is-open .cv-sheet { transition: none; }
+  .cv-sheet { transform: none; }
+}
+:where(.cv-sheet) :where(p, h2, h3, h4, ul) { margin: 0; }
+:where(.cv-sheet) :where(ul) { padding: 0; list-style: none; }
+
+/* Fixed top bar: it stays while the content scrolls underneath. */
+.cv-bar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 12);
+  padding: max(calc(var(--u) * 14), 10px) var(--cv-pad);
+  border-bottom: var(--pass-border) solid var(--pass-rule);
+}
+.cv-bar-label {
+  font-size: var(--cv-label-size);
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  color: var(--pass-label-color);
+}
+.cv-bar-actions { display: flex; flex-wrap: wrap; gap: max(calc(var(--u) * 12), 8px); }
+.cv-bar .ui-button { padding: max(calc(var(--u) * 8), 6px) max(calc(var(--u) * 18), 12px); }
+.cv-bar .ui-button.cv-close { padding-inline: max(calc(var(--u) * 10), 8px); align-items: center; }
+.cv-close-icon {
+  width: 1.2em;
+  height: 1.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+a.ui-button { text-decoration: none; }
+/* View PDF and Download PDF: icon + label; phones get the short label */
+.ui-button.cv-bar-link { display: inline-flex; align-items: center; justify-content: center; gap: 0.6em; }
+.cv-bar-icon {
+  flex: none;
+  width: 1.3em;
+  height: 1.3em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cv-bar-text--short { display: none; }
+.ui-button.cv-download {
+  border-color: color-mix(in srgb, var(--cv-accent) 55%, transparent);
+  color: var(--cv-accent);
+}
+@media (hover: hover) {
+  .ui-button.cv-download:hover { border-color: var(--cv-accent); color: var(--neon-core); }
+}
+
+/* The content scrolls inside the sheet and never hands over to the page. */
+.cv-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--cv-pad);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pass-edge) transparent;
+}
+.cv-scroll:focus { outline: none; }   /* focused by click so keys reach it; not a tab stop */
+
+/* Header: photo frame, name, role and city, summary */
+.cv-head { display: flex; gap: max(calc(var(--u) * 28), 18px); align-items: flex-start; }
+.cv-photo {
+  flex: none;
+  width: var(--cv-photo-size);
+  height: var(--cv-photo-size);
+  border-radius: var(--cv-photo-radius);
+  object-fit: cover;
+}
+.cv-photo--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 6);
+  border: var(--pass-divider) dashed var(--pass-edge);
+  font-size: var(--cv-label-size);
+  letter-spacing: var(--pass-label-tracking);
+  color: var(--pass-muted);
+}
+.cv-photo--empty .vcard-icon { width: 2.4em; height: 2.4em; stroke: var(--pass-muted); }
+.cv-id { min-width: 0; }
+.cv-name {
+  font-size: var(--cv-name-size);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: var(--vcard-name-tracking);
+  color: var(--pass-value-color);
+  overflow-wrap: anywhere;
+}
+.cv-role {
+  margin-top: calc(var(--u) * 8);
+  font-size: var(--cv-text-size);
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  color: var(--pass-muted);
+}
+.cv-summary {
+  margin-top: max(calc(var(--u) * 14), 10px);
+  font-size: var(--cv-text-size);
+  line-height: 1.5;
+  color: var(--ui-text);
+}
+
+/* Two columns under a divider: contact, skills, languages | experience, projects, education */
+.cv-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  column-gap: var(--cv-col-gap);
+  margin-top: var(--cv-section-gap);
+  padding-top: var(--cv-section-gap);
+  border-top: var(--pass-border) solid var(--pass-rule);
+}
+.cv-col { display: grid; align-content: start; align-self: start; gap: var(--cv-section-gap); min-width: 0; }
+/* The left column is much shorter than the right one: it stays in view beside
+   it while the right one scrolls (two columns only). js/cv-viewer.js sets
+   --cv-left-top below 0 where the column is taller than the sheet's room, so
+   its end is never hidden. */
+@media (min-width: 700px) {
+  .cv-col:first-child { position: sticky; top: var(--cv-left-top, 0px); }
+}
+.cv-section { min-width: 0; }
+.cv-label {
+  margin-bottom: max(calc(var(--u) * 12), 9px);
+  font-size: var(--cv-label-size);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  text-transform: uppercase;
+  color: var(--pass-label-color);
+}
+.cv-contact { display: grid; gap: max(calc(var(--u) * 10), 8px); font-size: var(--cv-text-size); line-height: 1.3; }
+.cv-contact li { display: flex; align-items: center; gap: max(calc(var(--u) * 10), 8px); min-width: 0; }
+.cv-contact a,
+.cv-contact span:not(.visually-hidden) { min-width: 0; overflow-wrap: anywhere; color: var(--pass-value-color); }
+.cv-contact a {
+  text-decoration: none;
+  border-bottom: var(--pass-border) solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+@media (hover: hover) {
+  .cv-contact a:hover { color: var(--neon-glow); border-bottom-color: currentColor; }
+}
+@media (pointer: coarse) {   /* touch: even 44px rows */
+  .cv-contact { gap: 0; }
+  .cv-contact li { min-height: var(--tap); }
+  .cv-contact a { display: flex; align-items: center; min-height: var(--tap); }
+}
+.cv-contact a:focus { outline: none; }
+.cv-contact a:focus-visible {
+  outline: calc(var(--u) * 2) solid var(--neon-glow);
+  outline-offset: calc(var(--u) * 3);
+  border-radius: calc(var(--u) * 2);
+}
+/* Skills in groups: a small muted heading over each group's chips */
+.cv-skill-groups { display: grid; gap: max(calc(var(--u) * 16), 12px); }
+.cv-skill-label {
+  margin-bottom: max(calc(var(--u) * 8), 6px);
+  font-size: var(--cv-small-size);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: var(--pass-muted);
+}
+.cv-chips { display: flex; flex-wrap: wrap; gap: max(calc(var(--u) * 8), 6px); }
+.cv-chip {
+  padding: max(calc(var(--u) * 4), 3px) max(calc(var(--u) * 10), 8px);
+  border: var(--pass-border) solid var(--pass-edge);
+  border-radius: calc(var(--u) * 4);
+  font-size: var(--cv-small-size);
+  line-height: 1.3;
+}
+.cv-langs { display: grid; gap: max(calc(var(--u) * 8), 6px); font-size: var(--cv-text-size); line-height: 1.3; }
+.cv-langs li { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 12px; }
+.cv-langs li > :last-child { margin-left: auto; text-align: right; }   /* if the level doesn't fit beside the language, it drops below, still on the right */
+.cv-muted { color: var(--pass-muted); }
+.cv-entries { display: grid; }
+.cv-entry + .cv-entry {
+  margin-top: var(--cv-entry-gap);
+  padding-top: var(--cv-entry-gap);
+  border-top: var(--pass-border) solid var(--pass-rule);
+}
+.cv-entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.cv-entry-title { min-width: 0; font-size: var(--cv-text-size); line-height: 1.35; overflow-wrap: anywhere; }
+.cv-entry-years { flex: none; font-size: var(--cv-small-size); letter-spacing: 0.04em; white-space: nowrap; color: var(--pass-muted); }
+.cv-entry-text { margin-top: calc(var(--u) * 4); font-size: var(--cv-small-size); line-height: 1.45; color: var(--pass-muted); }
+
+/* Below 700px wide the two columns become one. */
+@media (max-width: 699px) {
+  .cv-cols { grid-template-columns: minmax(0, 1fr); row-gap: var(--cv-section-gap); }
+}
+
+/* Phones (under 600px wide, or a touch screen held sideways): the viewer is
+   the whole screen: no radius, solid, padded by the safe areas (notch, home
+   indicator). The top bar keeps Close in view and its buttons 44px; only the
+   content below it scrolls. */
+@media (max-width: 599px), (max-height: 500px) and (pointer: coarse) {
+  .cv-modal { padding: 0; place-items: stretch; }
+  .cv-sheet {
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .cv-bar {
+    flex-wrap: nowrap;
+    padding: max(10px, var(--safe-top)) max(var(--cv-pad), var(--safe-right)) 10px max(var(--cv-pad), var(--safe-left));
+  }
+  .cv-bar-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cv-bar-actions { flex-wrap: nowrap; flex: none; }
+  .cv-bar .ui-button { min-width: 44px; min-height: 44px; }
+  .cv-bar-text--full { display: none; }
+  .cv-bar-text--short { display: inline; }
+  .cv-scroll {
+    padding: var(--cv-pad) max(var(--cv-pad), var(--safe-right)) calc(var(--cv-pad) + var(--safe-bottom)) max(var(--cv-pad), var(--safe-left));
+  }
+}
+/* Narrow phones: View, Download and Close fill the bar, so the "CV FILE"
+   caption is hidden from sight only (it still names the dialog). */
+@media (max-width: 419px) {
+  .cv-bar-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .cv-bar { justify-content: flex-end; }
+}
+
+/* ---- Fade jump (js/navigation.js) -----------------------------------------------
+   Full-screen cover for "Back to start" and long rail jumps. Its colour comes
+   from PACING.navigation.fadeColor; GSAP animates its opacity. It only exists
+   (display) during a fade, and only takes pointer events before the jump. */
+.jump-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+.jump-fade.is-active { display: block; }
+.jump-fade.is-blocking { pointer-events: auto; }
+/* The moment of the jump: everything takes its new state at once. */
+.is-jumping *,
+.is-jumping *::before,
+.is-jumping *::after { transition: none !important; }
+
+.map,
+.map svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- Map ------------------------------------------------------------------------
+   All strokes use non-scaling-stroke: widths are screen pixels at any zoom. */
+#world { background: var(--ocean); }
+#world .ocean { fill: var(--ocean); }
+#world .land { fill: var(--land); }
+#world .land-highlight { fill: var(--land-highlight); }
+#world .graticule,
+#world .borders,
+#world .states,
+#world .halo,
+#world .glow,
+#world .core {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+#world .borders { stroke: var(--country-border); stroke-width: var(--country-border-width); }
+#world .states { stroke: var(--state-border); stroke-width: var(--state-border-width); }
+#world .graticule { stroke: var(--graticule-color); stroke-width: var(--graticule-width); opacity: var(--graticule-opacity); }
+
+/* Places: neon outline, three stacked strokes (halo, glow, core).
+   Country outlines are uniform; the state outline is drawn at 50% of the
+   country outline's intensity. */
+#world .place--country .halo { stroke: var(--neon-glow); stroke-width: var(--place-halo-width); opacity: var(--place-halo-opacity); }
+#world .place--country .glow { stroke: var(--neon-glow); stroke-width: var(--place-glow-width); opacity: var(--place-glow-opacity); }
+#world .place--country .core { stroke: var(--neon-core); stroke-width: var(--place-core-width); opacity: var(--place-core-opacity); }
+
+/* Alaska, Hawaii, other outlying US parts: softer, so the lower 48 lead */
+#world .place--outer .halo { opacity: calc(var(--place-halo-opacity) * var(--us-outer-ratio)); }
+#world .place--outer .glow { opacity: calc(var(--place-glow-opacity) * var(--us-outer-ratio)); }
+#world .place--outer .core { opacity: calc(var(--place-core-opacity) * var(--us-outer-ratio)); }
+
+/* South Dakota: a fraction (--state-ratio) of the country outline */
+#world .place--state .halo { stroke: var(--neon-glow); stroke-width: var(--state-halo-width); opacity: calc(var(--place-halo-opacity) * var(--state-ratio)); }
+#world .place--state .glow { stroke: var(--neon-glow); stroke-width: var(--state-glow-width); opacity: calc(var(--place-glow-opacity) * var(--state-ratio)); }
+#world .place--state .core { stroke: var(--neon-core); stroke-width: var(--state-core-width); opacity: calc(var(--place-core-opacity) * var(--state-ratio)); }
+
+/* Routes: same three-stroke recipe, in yellow */
+#world .route .halo { stroke: var(--route-halo); stroke-width: var(--route-halo-width); }
+#world .route .glow { stroke: var(--route-glow); stroke-width: var(--route-glow-width); }
+#world .route .core { stroke: var(--route-core); stroke-width: var(--route-core-width); }
+/* Each layer's opacity is multiplied per path (no group opacity, which would
+   need an extra offscreen layer every frame). */
+/* The whole route, faintly, from the title on (static). */
+#world .route-faint .halo { opacity: calc(var(--route-halo-opacity) * var(--route-faint-opacity)); }
+#world .route-faint .glow { opacity: calc(var(--route-glow-opacity) * var(--route-faint-opacity)); }
+#world .route-faint .core { opacity: calc(var(--route-core-opacity) * var(--route-faint-opacity)); }
+/* The trail: drawn up to the flight position by real distance (js/scroll-story.js). */
+#world .route-trail path { transition: opacity 0.6s ease; }
+#world .route-trail .halo { opacity: var(--route-halo-opacity); }
+#world .route-trail .glow { opacity: var(--route-glow-opacity); }
+#world .route-trail .core { opacity: var(--route-core-opacity); }
+/* A finished flight's trail stays visible, dimmed. */
+#world .route.is-done .route-trail .halo { opacity: calc(var(--route-halo-opacity) * var(--route-done-opacity)); }
+#world .route.is-done .route-trail .glow { opacity: calc(var(--route-glow-opacity) * var(--route-done-opacity)); }
+#world .route.is-done .route-trail .core { opacity: calc(var(--route-core-opacity) * var(--route-done-opacity)); }
+
+/* Cities: small pulsing neon dot (inner group is counter-scaled to screen px) */
+#world .city .dot {
+  r: var(--dot-radius);
+  fill: var(--neon-core);
+  stroke: var(--neon-glow);
+  stroke-width: var(--dot-ring-width);
+  vector-effect: non-scaling-stroke;
+}
+#world .city .pulse {
+  r: var(--pulse-radius);
+  fill: var(--neon-glow);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: city-pulse var(--pulse-duration) ease-out infinite;
+}
+@keyframes city-pulse {
+  from { transform: scale(1); opacity: var(--pulse-opacity); }
+  to   { transform: scale(var(--pulse-scale)); opacity: 0; }
+}
+
+/* Plane (js/plane.js): inside a counter-scaled group, so 1 unit = 1 screen px.
+   Scales in from --plane-appear-scale with a fade at boarding, and back out
+   at touchdown (scale around the flight position, the group's origin). */
+#world .plane-layer { pointer-events: none; }
+#world .plane-appear {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(var(--plane-appear-scale));
+  transition: opacity var(--plane-fade) ease-in, transform var(--plane-fade) ease-in,
+    visibility 0s linear var(--plane-fade);
+}
+#world .plane-appear.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  transition: opacity var(--plane-fade) ease-out, transform var(--plane-fade) ease-out, visibility 0s;
+}
+#world .plane-glow {
+  fill: none;
+  stroke: var(--route-glow);
+  stroke-width: var(--plane-glow-width);
+  stroke-linejoin: round;
+  opacity: var(--plane-glow-opacity);
+  vector-effect: non-scaling-stroke;
+}
+#world .plane-body { fill: var(--plane-color); }
+
+/* City label: under the dot while the camera is settled on the stop
+   (js/city-labels.js). Inside the counter-scaled group, so 1 unit = 1 screen
+   px. Fades in rising and with tracking tightening; fades straight out. */
+#world .city-label {
+  /* --label-dx/--label-dy: the city's labelOffset (js/stops.js). The half
+     letter-space re-centres centred text (tracking also follows the last
+     letter); --label-centre is 0 for start-anchored labels. */
+  --label-x: calc(var(--label-dx, 0px) + var(--city-label-px) * var(--city-label-tracking) / 2 * var(--label-centre, 1));
+  --label-y: calc(var(--city-label-offset) + var(--label-dy, 0px));
+  font-family: var(--ui-font);
+  font-size: var(--city-label-px);
+  letter-spacing: calc(var(--city-label-px) * (var(--city-label-tracking) + var(--city-label-tracking-from)));
+  text-anchor: middle;
+  dominant-baseline: hanging;
+  fill: var(--city-label-color);
+  stroke: var(--city-label-outline-color);
+  stroke-width: var(--city-label-outline);
+  stroke-linejoin: round;
+  paint-order: stroke;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(var(--label-x), calc(var(--label-y) + var(--city-label-rise)));
+  transition: opacity var(--label-out) ease, transform var(--label-out) ease,
+    letter-spacing var(--label-out) ease, visibility 0s linear var(--label-out);
+}
+#world .city-label.is-visible {
+  opacity: var(--city-label-opacity);
+  visibility: visible;
+  letter-spacing: calc(var(--city-label-px) * var(--city-label-tracking));
+  transform: translate(var(--label-x), var(--label-y));
+  transition: opacity var(--label-fade) ease-out var(--label-delay),
+    transform var(--label-fade) ease-out var(--label-delay),
+    letter-spacing var(--label-fade) ease-out var(--label-delay), visibility 0s;
+}
+
+
+/* ---- Reduced motion (accessibility pass) --------------------------------------------
+   With prefers-reduced-motion: reduce, nothing moves by itself and nothing
+   slides: the only motion left is the scroll-driven camera, plane and route
+   the visitor steers (and the user's own Ctrl+wheel zoom and drag). Plain fades
+   (opacity only) stay, because a fade is not movement. Other reduced-motion
+   rules sit beside what they change (the hint, skip buttons, card faces, CV
+   folder and viewer); JS: the title types nothing (js/title.js), the zoom offset
+   and rail jumps are instant (js/main.js, js/navigation.js), the fade jump has
+   no overlay, the camera's overshoot and drift are off (js/scroll-story.js).
+   Last in the file, so it wins over the layout rules above. */
+@media (prefers-reduced-motion: reduce) {
+  /* Title: no blinking cursor (a steady block), no lift while leaving */
+  .title,
+  .title.is-hidden { transform: translateY(-50%); }
+  .title-cursor { animation: none; }
+
+  /* Cards and boarding passes: they fade in place, no slide in from the side */
+  .card,
+  .card.is-active,
+  .pass,
+  .pass.is-active { transform: translate(0, -50%); }
+
+  /* City dots: no pulsing ring */
+  #world .city .pulse { animation: none; opacity: 0; }
+
+  /* Plane: fades in and out, no scaling; city label: fades, no rise or tracking change */
+  #world .plane-appear,
+  #world .plane-appear.is-visible { transform: none; }
+  #world .city-label,
+  #world .city-label.is-visible {
+    transform: translate(var(--label-x), var(--label-y));
+    letter-spacing: calc(var(--city-label-px) * var(--city-label-tracking));
+  }
+
+  /* Chapter rail: the active dot's growth is not animated */
+  .rail-dot { transition: background-color 0.25s ease, border-color 0.25s ease; }
+}
+/* Portrait: the title sits above its anchor and the sheet's cards sit on its edge */
+@media (prefers-reduced-motion: reduce) and (max-aspect-ratio: 4/5) {
+  .title,
+  .title.is-hidden { transform: translateY(-100%); }
+  .card,
+  .card.is-active,
+  .pass,
+  .pass.is-active { transform: none; }
+}

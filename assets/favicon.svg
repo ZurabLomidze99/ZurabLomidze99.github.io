@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Favicon: the route in miniature. Three cities (places blue) joined by
+       two arcs (route yellow) on the ocean colour. Thick strokes, tall arcs
+       and spread-out dots so it still reads at 16 px. -->
+  <rect width="32" height="32" rx="7" fill="#0a0f1d"/>
+  <g fill="none" stroke="#ffd400" stroke-width="3" stroke-linecap="round">
+    <path d="M6 24 Q10.5 6 16 21"/>
+    <path d="M16 21 Q21 3 26 12"/>
+  </g>
+  <g fill="#d9fbff" stroke="#19c3ff" stroke-width="1.6">
+    <circle cx="6" cy="24" r="3"/>
+    <circle cx="16" cy="21" r="3"/>
+    <circle cx="26" cy="12" r="3"/>
+  </g>
+</svg>
