@@ -1956,7 +1956,25 @@ textarea { touch-action: manipulation; }
 .ui-button.is-failed .ui-button-label { visibility: hidden; }
 .ui-button.is-failed .ui-button-label--fail { visibility: visible; }
 
-.back-to-start { margin-top: calc(var(--u) * 48); }   /* last thing in the ending */
+/* The foot, last thing in the ending: Back to start with a muted note about
+   the visit statistics beside it; the note drops under the button (centred)
+   where the row is too narrow. */
+.ending-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 12) calc(var(--u) * 24);
+  margin-top: calc(var(--u) * 48);
+  max-width: 100%;
+}
+.ending-note {
+  margin: 0;
+  font: var(--ending-small-size) / 1.4 var(--ui-font);
+  letter-spacing: 0.04em;
+  color: var(--ui-muted);
+  text-align: center;
+}
 
 /* Touch: 44px tap targets (--tap), label centred in the taller button. The
    form's fields and checkbox get theirs with the form (mobile step 6). */

@@ -117,8 +117,8 @@
       </div>
       <p class="visually-hidden" aria-live="polite"></p>
     </div>`;
-  // Under the heading; "Back to start" stays last.
-  document.querySelector(".ending-inner .back-to-start").before(row);
+  // Under the heading; the foot ("Back to start" and the statistics note) stays last.
+  document.querySelector(".ending-inner .ending-foot").before(row);
 
   const wrap = row.querySelector(".vcard-wrap");
   const live = row.querySelector("[aria-live]");
@@ -129,7 +129,7 @@
 
   // ---- Copy email -------------------------------------------------------------------------
   // Clipboard API where it's available (secure contexts: https, localhost);
-  // otherwise (http://192.168... on a phone, file://) a hidden textarea and
+  // otherwise (plain http on a LAN address on a phone, file://) a hidden textarea and
   // execCommand("copy"), with the iOS details: the textarea is readonly (no
   // keyboard), 16px (no zoom on focus), on screen (not display: none), and
   // selected with setSelectionRange too, all within the tap's own task (no
@@ -159,7 +159,8 @@
 
   const copyBtn = row.querySelector(".vcard-copy");
   let copiedTimer = 0;
-  copyBtn.addEventListener("click", async () => {
+  copyBtn.addEventListener("click", async (e) => {
+    window.analytics.event("email-copy", e);   // the action, whether or not the browser lets the copy through
     const ok = await copyText(PROFILE.email);
     copyBtn.focus({ preventScroll: true });   // the fallback moved focus to its textarea
     if (!ok) {
@@ -194,7 +195,10 @@
   }
   const fileName = `${PROFILE.givenName}-${PROFILE.familyName}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "contact";
 
-  row.querySelector(".vcard-save").addEventListener("click", () => {
+  row.querySelector(".vcard-mail").addEventListener("click", (e) => window.analytics.event("email-me", e));
+
+  row.querySelector(".vcard-save").addEventListener("click", (e) => {
+    window.analytics.event("contact-save", e);
     const url = URL.createObjectURL(new Blob([vcard()], { type: "text/vcard;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;

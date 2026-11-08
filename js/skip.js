@@ -35,11 +35,15 @@
   const contactBtn = group.querySelector(".skip-contact");
   const cvBtn = group.querySelector(".skip-cv");
 
-  contactBtn.addEventListener("click", () => {
+  contactBtn.addEventListener("click", (e) => {
+    window.analytics.event("skip-contact", e);
     const card = window.visitingCard;
     window.navigation.fadeTo(contactTarget, () => card.focusCard(), () => card.reveal());
   });
-  cvBtn.addEventListener("click", () => window.cvViewer.open(cvBtn));
+  cvBtn.addEventListener("click", (e) => {
+    window.analytics.event("skip-cv", e);
+    if (window.cvViewer.open(cvBtn)) window.analytics.event("cv-open", e);
+  });
 
   // Hidden in the ending. render(p) gives the section; in the ending p stays
   // at 1 (section "ending"), so the state holds there.

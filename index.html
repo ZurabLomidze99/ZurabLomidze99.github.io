@@ -15,6 +15,33 @@
   <meta name="twitter:card" content="summary">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
+  <!-- GoatCounter (cookie-free visit statistics): the documented tag,
+         <script data-goatcounter="https://zurablomidze.goatcounter.com/count"
+                 async src="//gc.zgo.at/count.js"></script>
+       added by this loader only on a real public host. On localhost, raw IP
+       addresses (127.x, 10.x, 192.168.x, ...), single-word hosts, .local-style
+       names and anything that is not http(s), the script is never requested,
+       so my own servers and phone tests are never counted and make no
+       request to another domain. (count.js also ignores local addresses on
+       its own.) To leave my own browsers out of the live counts, open
+       https://zurablomidze.com/#toggle-goatcounter once in each browser. -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      var isPublic = /^https?:$/.test(location.protocol) &&
+        /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(h) &&                  // a dotted name: no IPv6, no single-word host
+        !/^\d+(\.\d+){3}$/.test(h) &&                              // no raw IPv4 (127.x, 10.x, 172.16-31.x, 192.168.x, 169.254.x ...)
+        !/\.(localhost|local|lan|home|internal|test|invalid|example)$/i.test(h);
+      if (!isPublic) return;
+      try {
+        var s = document.createElement("script");
+        s.async = true;
+        s.setAttribute("data-goatcounter", "https://zurablomidze.goatcounter.com/count");
+        s.src = "//gc.zgo.at/count.js";
+        document.head.appendChild(s);
+      } catch (e) { /* analytics must never break the page */ }
+    })();
+  </script>
 </head>
 <body>
   <main>
@@ -50,6 +77,7 @@
   <script src="js/world-map.js"></script>
   <script src="js/main.js"></script>
   <script src="js/scroll-story.js"></script>
+  <script src="js/analytics.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/passes.js"></script>
   <script src="js/cards.js"></script>

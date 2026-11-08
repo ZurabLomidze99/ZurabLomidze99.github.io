@@ -239,8 +239,20 @@
   back.type = "button";
   back.className = "back-to-start";
   back.textContent = "Back to start";
-  back.addEventListener("click", () => fadeTo(0, startButton));
-  document.querySelector(".ending-inner").append(back);
+  back.addEventListener("click", (e) => {
+    window.analytics.event("back-to-start", e);
+    fadeTo(0, startButton);
+  });
+  // The foot: the button, with a muted note about the visit statistics beside
+  // it (under it where the row is too narrow). The note is plain text, read in
+  // order after the button; it is no control and needs no extra role.
+  const foot = document.createElement("div");
+  foot.className = "ending-foot";
+  const note = document.createElement("p");
+  note.className = "ending-note";
+  note.textContent = "Anonymous, cookie-free visit statistics.";
+  foot.append(back, note);
+  document.querySelector(".ending-inner").append(foot);
 
   // ---- Update from the story's render(p) ------------------------------------------------
   let activeId = null;

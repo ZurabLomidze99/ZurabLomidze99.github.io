@@ -152,7 +152,7 @@
   let opener = folderBtn;
 
   function open(from) {
-    if (isOpen) return;
+    if (isOpen) return false;
     isOpen = true;
     opener = from instanceof HTMLElement ? from : folderBtn;
     inerted = [...document.body.children].filter((el) => el !== modal && el.tagName !== "SCRIPT" && !el.inert);
@@ -162,6 +162,7 @@
     root.classList.add("is-cv-open");
     opener.setAttribute("aria-expanded", "true");
     closeBtn.focus({ preventScroll: true });
+    return true;   // opened now (false: it already was); the callers' click handlers count it (js/analytics.js)
   }
   function close() {
     if (!isOpen) return;
@@ -173,8 +174,10 @@
     inerted = [];
     opener.focus({ preventScroll: true });
   }
-  folderBtn.addEventListener("click", () => open(folderBtn));
+  folderBtn.addEventListener("click", (e) => { if (open(folderBtn)) window.analytics.event("cv-open", e); });
   closeBtn.addEventListener("click", close);
+  modal.querySelector(".cv-view").addEventListener("click", (e) => window.analytics.event("cv-view-pdf", e));
+  modal.querySelector(".cv-download").addEventListener("click", (e) => window.analytics.event("cv-download-pdf", e));
 
   // Backdrop click closes, but only when the press also started there (selecting
   // text in the sheet and letting go outside it must not close).
