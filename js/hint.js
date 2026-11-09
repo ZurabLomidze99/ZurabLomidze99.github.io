@@ -9,14 +9,14 @@
 // above the bottom sheet in portrait, at the bottom centre when no panel is
 // up (above the chapter bar on phones). It is placed once, as it appears,
 // and never over the panel, a city label, the plane, the HUD, the rail or
-// bar, the skip buttons, or the title: if no spot is free,
+// bar, the skip buttons, the title or a photo pile: if no spot is free,
 // it stays hidden.
 // Never in the ending, and not while the visitor has "arrived" there: they
 // scrolled into it themselves (not by a rail or bar jump or a fade jump)
 // and stayed PACING.hint.arrivedFor. That flag (memory only) clears
 // as soon as the page position is back before the ending, or on Back to
-// start. Never during the fade jump, a card or pass switch, with the CV
-// open, a form field focused, or in a hidden tab.
+// start. Never during the fade jump, a card or pass switch, with the CV or
+// the photo viewer open, a form field focused, or in a hidden tab.
 // Opacity and transform only; timers, no frame loop; never clickable.
 (function () {
   const H = window.PACING.hint;
@@ -97,6 +97,7 @@
     add(document.querySelector(".rail"));
     add(document.querySelector(".skip:not(.is-away)"));   // the CONTACT and CV buttons (js/skip.js)
     add(document.querySelector(".title:not(.is-hidden) .title-name"));
+    if (window.photoPiles) window.photoPiles.shown().forEach(add);   // the stop's photo pile and its pill (js/photos.js)
     return out;
   }
 
@@ -112,10 +113,30 @@
     const spots = [];
     const slot = window.cardSlot.active();
     if (slot) {
-      const p = slot.el.getBoundingClientRect();
+      const p = window.cardSlot.rect();   // a story card: the slot (the same for every card); a pass: its own rect
       const cx = p.left + p.width / 2;
       if (portrait) spots.push({ cx, top: p.top - gap - h });                 // just above the sheet
       else spots.push({ cx, top: p.bottom + gap }, { cx, top: p.top - gap - h });   // under the panel; above it if there's no room
+    }
+    // A stop's photo pile and its pill stand on the panel's top edge, where the
+    // portrait hint would sit: then in the row above each of them, centred on
+    // it, on the panel, or at either screen edge (each checked below).
+    // A row higher each round where the city label or a long line is in the way.
+    if (window.photoPiles) {
+      const rects = window.photoPiles.shown().map((n) => n.getBoundingClientRect()).filter((r) => r.width && r.height);
+      const p = slot && window.cardSlot.rect();
+      const mid = rects.length ? rects.reduce((a, r) => a + r.left + r.width / 2, 0) / rects.length : W / 2;
+      const xs = [];
+      for (let x = safe.l + clear + w / 2; x <= W - safe.r - clear - w / 2; x += 16) xs.push(x);   // along the row, nearest the pile first
+      xs.sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid));
+      for (let k = 0; k < 4 && rects.length; k++) {
+        for (const r of rects) {
+          const top = r.top - gap - h - k * (h + clear);
+          spots.push({ cx: r.left + r.width / 2, top });
+          if (p) spots.push({ cx: p.left + p.width / 2, top });
+          for (const cx of xs) spots.push({ cx, top });
+        }
+      }
     }
     // Bottom centre: above the chapter bar, or where the old title cue sat.
     const floor = portrait
@@ -132,6 +153,7 @@
     }
     return null;
   }
+
 
   // ---- When ------------------------------------------------------------------------------------
   let section = null;     // latest from render(p)
@@ -221,7 +243,8 @@
     if (wait > 1) return arm(wait);
     const switching = window.cardSlot.switchingFor();
     if (switching > 0) return arm(switching + 50);
-    if (window.navigation.isFading() || (window.cvViewer && window.cvViewer.isOpen()) || typing()) return arm(idleMs());
+    if (window.navigation.isFading() || (window.cvViewer && window.cvViewer.isOpen())
+      || (window.photoViewer && window.photoViewer.isOpen()) || typing()) return arm(idleMs());
     show();
   }
 

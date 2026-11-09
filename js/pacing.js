@@ -30,13 +30,33 @@ window.PACING = {
     pullBack: 420,   // the final pull-back into the ending
   },
 
-  // Touch devices only: snap stops (js/snap.js). A flick stops at the next
-  // stop (CSS scroll snapping, mandatory, scroll-snap-stop: always): the
-  // title, the middle of each card and boarding pass, a third and two thirds
-  // into each flight, the ending at rest, and stops through the ending down
-  // to the page's bottom. Mouse devices never snap.
+  // Desktop (a mouse): the same minimums for the stretches that are shorter
+  // than one wheel notch (a card is about 270 px and a boarding pass about
+  // 85 px at 1080 px of height), applied by the same function in
+  // js/timeline.js, but only while snap.desktop is "stops". Same names as
+  // touchMin; a stretch that is not named here has no minimum.
+  desktopMin: {
+    flyIn: 220,      // the camera flying in to Georgia
+    card: 340,       // one story card (a stop's card range gets this times its card count)
+    pass: 220,       // one boarding pass, before takeoff
+    pullBack: 380,   // the final pull-back into the ending
+  },
+
+  // Snap stops (js/snap.js). Touch: a flick stops at the next stop (CSS scroll
+  // snapping, mandatory, scroll-snap-stop: always): the title, the middle of
+  // each card and boarding pass, a third and two thirds into each flight, the
+  // ending at rest, and stops through the ending down to the page's bottom.
+  // Mouse: desktop "stops" keeps one wheel or key gesture from passing the
+  // next stop (the same stops, but interior stops every flightStep screens in a
+  // flight, none through the ending), done in JS because CSS snapping does not
+  // limit a wheel burst (see js/snap.js); "off": native scrolling, as before.
   snap: {
     enabled: true,     // false: no snap stops at all
+    desktop: "stops",  // mouse devices: "stops" or "off" (?snap=stops / ?snap=off overrides it for one page load, see the end of this file)
+    flightStep: 0.45,  // desktop: interior stops in a flight about this many screens apart
+    wheelGap: 0.18,    // desktop: seconds without a wheel event or a key press before the next one starts a new gesture
+    lineHeight: 40,    // desktop: px a wheel notch in lines (Firefox) or an arrow key press scrolls
+    pageStep: 0.875,   // desktop: share of the screen height that Space, PageDown and PageUp scroll
     endingStep: 0.8,   // the ending's stops are at most this share of the visible height (less the chapter bar) apart
     settle: 0.15,      // seconds without scrolling, finger up, before the page counts as at rest
     tolerance: 2,      // px: a scroll position this close to a stop counts as on it
@@ -246,6 +266,26 @@ window.PACING = {
     labelOut: 0.3,      // city label fade out at takeoff
   },
 
+  // Photo piles (js/photos.js): one per stop, standing on the story card's top
+  // edge, shown from the stop's first card to its last. Sizes are --pile-*
+  // variables (css/style.css).
+  // Reduced motion: a plain fade, no slide, bob, glide or fan.
+  photos: {
+    delay: 0.3,         // seconds after the stop's first card starts to appear before the pile comes out from behind it
+    fadeIn: 0.3,        // seconds: opacity when it appears
+    slide: 0.4,         // seconds: slides out from behind the card (and back, with the fade, when it leaves)
+    fadeOut: 0.3,       // seconds: out with the last card (before a boarding pass, which waits fade.cardDelay)
+    spread: 0.25,       // seconds: the layers fan on hover (and back)
+    bobPeriod: 0.7,     // seconds: one bob of the pill's arrow toward the pile
+    bobCount: 3,        // bobs when the pile appears, then it rests
+    minScale: 0.6,      // the pile shrinks to this share of its size when the room above the card is short; below it, it stands beside the card (short windows)
+    preloadAhead: 3,    // % of scroll before a stop's first card: its top three thumbnails start loading (none pop in)
+    // The viewer (js/photo-viewer.js): open and close fades. Reduced motion: at once.
+    open: 0.25,
+    close: 0.2,
+    swipeWindow: 1.5,   // seconds after a touch, wheel or trackpad move on the photos that a change of photo counts as the visitor's (analytics)
+  },
+
   // Boarding passes: one per flight, in the card panel. A pass slides in at
   // the start of its boarding segment and stays through the whole flight
   // (status BOARDING, then IN FLIGHT once the trail starts); it leaves during
@@ -289,3 +329,10 @@ window.PACING = {
     landing: "sine.inOut",   // slow zoom in from the follow view to the city
   },
 };
+
+// TEMPORARY A/B flag (remove when the desktop stops are decided): ?snap=off or
+// ?snap=stops overrides PACING.snap.desktop for this page load only.
+{
+  const q = new URLSearchParams(location.search).get("snap");
+  if (q === "off" || q === "stops") window.PACING.snap.desktop = q;
+}

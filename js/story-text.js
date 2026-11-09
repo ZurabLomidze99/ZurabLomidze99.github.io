@@ -41,6 +41,13 @@
       if (card.year) el("p", card.year, article);
       el("p", card.text, article);
     }
+    // The stop's photo pile (js/photos.js): every photo's alt text and caption, in pile order.
+    const photos = (stop.photos || []).filter((ph) => ph.alt || ph.caption);
+    if (photos.length) {
+      el("h3", `Photos from ${stop.title}`, section);
+      const list = el("ul", "", section);
+      for (const ph of photos) el("li", [ph.alt, ph.caption].filter(Boolean).join(" "), list);
+    }
 
     // The flight that leaves this stop: the boarding pass, in words. Its date
     // is a placeholder on the pass, so it is left out here.

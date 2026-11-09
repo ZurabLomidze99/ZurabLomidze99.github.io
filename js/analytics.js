@@ -14,7 +14,9 @@
 //   scroll position is not a visit to it). Memory only: no storage, no cookies.
 // Event names (the paths in GoatCounter's list): cv-open, cv-view-pdf,
 // cv-download-pdf, email-copy, email-me, contact-save, skip-contact, skip-cv,
-// ending-reached, back-to-start.
+// ending-reached, back-to-start, photos-open (a pile opened the photo
+// viewer), photos-next (the first move to another photo in one opening:
+// a button, a key, the strip or a swipe; once per opening).
 (function () {
   const TITLES = {
     "cv-open": "CV viewer opened",
@@ -27,6 +29,8 @@
     "skip-cv": "CV skip button",
     "ending-reached": "Story reached the ending",
     "back-to-start": "Back to start",
+    "photos-open": "Photo viewer opened",
+    "photos-next": "Photo viewer: moved to another photo",
   };
 
   function event(name, e) {

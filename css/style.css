@@ -114,6 +114,46 @@
   --city-label-opacity: 1;
   --city-label-px: max(var(--city-label-size), var(--label-floor));   /* what is drawn: the size above, with the touch floor */
 
+  /* Photo pile on the story card (js/photos.js; timing: PACING.photos): a stack
+     of polaroids standing on the active card's top edge (its lower part tucked
+     behind it) with a pill beside it. --pile-width is the cover photo's width
+     (3:2); a pile that finds little room shrinks (--pile-scale, set by js).
+     Portrait and short windows override the sizes below. */
+  --pile-width: calc(var(--u) * 280);       /* the cover photo */
+  --pile-pad: calc(var(--u) * 8);           /* polaroid frame around the photo */
+  --pile-rise: calc(var(--pile-width) * 0.56);   /* how far the cover's frame stands above the card's edge; the rest is tucked behind it */
+  --pile-top-room: calc(var(--u) * 20);     /* above the cover: the back photos' tilt and the hover lift */
+  --pile-inset: calc(var(--u) * 12);        /* from the card's right edge */
+  --pile-gap: calc(var(--u) * 34);          /* pill to the pile (clears the tilted back photo) */
+  --pile-border: calc(var(--u) * 1);
+  --pile-border-color: #35497c;
+  --pile-radius: calc(var(--u) * 3);
+  --pile-bg: var(--vcard-bg);               /* solid dark frame */
+  --pile-well: var(--land);                 /* the photo's place before it has loaded */
+  --pile-shadow: calc(var(--u) * 3);        /* a solid offset shadow (no blur) */
+  --pile-shadow-opacity: 0.55;
+  --pile-lift: calc(var(--u) * 8);          /* hover (a mouse): the pile lifts this far */
+  --pile-arrow-bob: calc(var(--u) * 5);     /* the pill's arrow bobs this far toward the pile */
+  --pile-limit: var(--skip-clear);          /* nothing of the pile above this (from the top of the screen): under the skip buttons */
+  --pile-pill-w: calc(var(--u) * 130);      /* the pill's width, for the fit */
+  --pile-side-w: calc(var(--u) * 130);      /* beside the card (short windows): the pile's visible width */
+  --pile-side-bottom: 16px;                 /* ... and how far its lower edge stands above the card's lower edge */
+
+  /* Photo viewer (js/photo-viewer.js): a full-screen dark backdrop, the
+     photo at its natural proportions within these shares of the screen. */
+  --photo-backdrop: var(--ocean);           /* solid: nothing of the page shows through */
+  --photo-max-w: 92vw;
+  --photo-max-h: 80vh;
+  --photo-pad: max(calc(var(--u) * 20), 12px);         /* around the bars */
+  --photo-gap: max(calc(var(--u) * 12), 8px);          /* photo to caption */
+  --photo-caption-size: max(calc(var(--u) * 15), 13px);
+  --photo-caption-h: calc(var(--photo-caption-size) * 2.9 + var(--photo-gap));   /* room kept for two lines of caption */
+  --photo-label-size: max(calc(var(--u) * 12), 11px, var(--label-floor));
+  --photo-nav-size: max(calc(var(--u) * 52), 40px, var(--tap));   /* previous / next (44px on touch) */
+  --photo-thumb-h: max(calc(var(--u) * 64), 44px);     /* the strip's thumbnails (3:2) */
+  --photo-thumb-gap: max(calc(var(--u) * 8), 6px);
+  --photo-current: var(--neon-glow);                   /* the strip's current photo */
+
   /* Story cards and boarding passes (right side): solid dark panel, no blur.
      Width and right margin are clamped to a share of the window, so narrow
      windows (where u grows) keep room for the map; from 1277px wide up the
@@ -136,6 +176,7 @@
   --sheet-gap: 8px;                         /* above the chapter bar */
   --sheet-max-width: 560px;                 /* tablets: centred, never wider */
   --sheet-max-height: 0.42;                 /* share of the visible screen (--ui-h); a longer card scrolls inside */
+  --sheet-cap: calc(var(--ui-h) * var(--sheet-max-height));   /* the sheet's largest height */
   --sheet-slide: 24px;                      /* cards and passes slide up by this much */
   --sheet-card-padding: 14px 16px;
   --sheet-card-title-size: calc(var(--u) * 24);
@@ -342,9 +383,41 @@
   :root {
     --stage-h: 100lvh;
     --ui-h: 100svh;
+    --photo-max-h: 80svh;
+  }
+}
+/* Short windows (a phone held sideways, 200-300 % zoom): a smaller pile. */
+@media (max-height: 500px) {
+  :root {
+    --pile-width: 150px;
+    --pile-pad: 5px;
+    --pile-top-room: 12px;
+    --pile-inset: 8px;
+    --pile-gap: 24px;
+    --pile-lift: 6px;
+    --pile-arrow-bob: 4px;
+    --pile-side-w: 110px;
+    --pile-pill-w: 120px;
   }
 }
 
+/* Photo piles in portrait: the cover is 160px wide, standing on the sheet's
+   edge at the right; it keeps below the map's focus area (--pile-limit, a
+   share of the visible height). */
+@media (max-aspect-ratio: 4/5) {
+  :root {
+    --pile-width: 160px;
+    --pile-pad: 6px;
+    --pile-top-room: 12px;
+    --pile-inset: 10px;
+    --pile-gap: 24px;
+    --pile-radius: 3px;
+    --pile-lift: 6px;
+    --pile-arrow-bob: 4px;
+    --pile-limit: calc(var(--ui-h) * 0.4);
+    --pile-pill-w: 120px;
+  }
+}
 /* ---- Layout modes (mobile): the one source of truth -------------------------------
    --layout is "wide" (default) or "portrait"; the modifiers are 0 or 1.
    js/layout.js reads them and fires "layoutchange". CSS rules for a mode
@@ -578,8 +651,12 @@ textarea { touch-action: manipulation; }
 /* ---- Card panel: story cards and boarding passes (right side) --------------------
    Stacked in one spot; the active one fades and slides in after a short delay,
    so the previous one has left first. Hidden ones are visibility: hidden
-   (no paint, not read out). Centred on the visible screen (--ui-h). */
-.cards {
+   (no paint, not read out). The panel is as tall as the visible screen (--ui-h).
+   Story cards all share one top edge (--slot-top, set by js/cards.js: the
+   tallest card is centred, shorter ones top-align at that line); boarding
+   passes are centred in the panel. */
+.cards,
+.pile-box {
   position: absolute;
   top: 0;
   height: var(--ui-h);
@@ -588,11 +665,12 @@ textarea { touch-action: manipulation; }
   z-index: 2;
   pointer-events: none;
 }
+.pile-box { z-index: 1; }   /* under the cards: the pile is tucked behind their top edge */
 .card {
   position: absolute;
   left: 0;
   right: 0;
-  top: 50%;
+  top: var(--slot-top, 0px);
   padding: var(--card-padding);
   background: var(--card-bg);
   border: calc(var(--u) * 1) solid var(--card-border);
@@ -600,7 +678,7 @@ textarea { touch-action: manipulation; }
   color: var(--ui-text);
   opacity: 0;
   visibility: hidden;
-  transform: translate(var(--card-slide), -50%);
+  transform: translate(var(--card-slide), 0);
   transition: opacity var(--card-fade) ease, transform var(--card-fade) ease, visibility 0s linear var(--card-fade);
   /* Taller than its room (a phone, a short window, 200-300 % browser zoom):
      the header stays and only the text scrolls (.card-text). The card's own
@@ -643,7 +721,7 @@ textarea { touch-action: manipulation; }
 .card.is-active {
   opacity: 1;
   visibility: visible;
-  transform: translate(0, -50%);
+  transform: none;
   transition: opacity var(--card-fade) ease var(--card-delay), transform var(--card-fade) ease var(--card-delay), visibility 0s;
 }
 .card-kicker,
@@ -971,7 +1049,8 @@ textarea { touch-action: manipulation; }
    the panel starts under them. Before the portrait block, which wins where
    both apply. */
 @media (max-height: 500px) {
-  .cards {
+  .cards,
+  .pile-box {
     top: var(--skip-clear);
     height: calc(var(--ui-h) - var(--skip-clear));
   }
@@ -1010,19 +1089,28 @@ textarea { touch-action: manipulation; }
   /* Bottom sheet: fixed like the chapter bar, so it stays on it while a
      phone's toolbar moves. Full width less the gutters (centred, capped on
      tablets); cards and passes sit on its bottom edge and slide up. */
-  .cards {
+  .cards,
+  .pile-box {
     position: fixed;
     top: auto;
     bottom: calc(var(--bar-height) + var(--safe-bottom) + var(--sheet-gap));
     left: max(calc(var(--sheet-gutter) + var(--safe-left)), calc((100% - var(--sheet-max-width)) / 2));
     right: max(calc(var(--sheet-gutter) + var(--safe-right)), calc((100% - var(--sheet-max-width)) / 2));
     width: auto;
-    height: calc(var(--ui-h) * var(--sheet-max-height));
+    height: var(--slot-h, var(--sheet-cap));   /* one fixed height: the tallest card or pass, at most the maximum (js/cards.js) */
   }
-  .card,
+  .cards.is-measuring { height: var(--sheet-cap); }   /* js/cards.js measures every card at its natural height */
+  .card {
+    top: 0;      /* every card fills the sheet, its content at the top */
+    bottom: 0;
+  }
+  .cards.is-measuring .card { bottom: auto; }
   .pass {
     top: auto;
     bottom: 0;
+  }
+  .card,
+  .pass {
     max-height: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1249,7 +1337,8 @@ textarea { touch-action: manipulation; }
   transition: opacity var(--skip-fade) ease, visibility 0s;
 }
 .skip.is-away,
-.is-cv-open .skip {
+.is-cv-open .skip,
+.is-photos-open .skip {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1302,6 +1391,7 @@ textarea { touch-action: manipulation; }
   .skip,
   .skip.is-away,
   .is-cv-open .skip,
+  .is-photos-open .skip,
   .skip-button { transition: none; }
 }
 
@@ -2351,6 +2441,190 @@ a.ui-button { text-decoration: none; }
   .cv-bar { justify-content: flex-end; }
 }
 
+/* ---- Photo viewer (js/photo-viewer.js): a stop's photos over everything ------------
+   Full screen on a solid dark backdrop. Bar on top (title, counter, Close),
+   the photos as a horizontal scroll-snap carousel, previous / next at the
+   sides (portrait: bottom corners), the thumbnail strip at the bottom (not in
+   portrait). Hidden = visibility: hidden, shown by .is-open. A direct child of <body>. */
+.photo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--photo-backdrop);
+  overscroll-behavior: contain;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--photo-close) ease, visibility 0s linear var(--photo-close);
+}
+.photo-modal.is-open {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity var(--photo-open) ease, visibility 0s;
+}
+.photo-viewer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  color: var(--ui-text);
+  font-family: var(--ui-font);
+}
+.photo-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--photo-gap);
+  padding: max(var(--photo-pad), var(--safe-top)) max(var(--photo-pad), var(--safe-right)) var(--photo-pad) max(var(--photo-pad), var(--safe-left));
+}
+.photo-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--photo-label-size);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: var(--pass-label-tracking);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--pass-label-color);
+}
+.photo-count {
+  flex: none;
+  font-size: var(--photo-label-size);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.ui-button.photo-close,
+.ui-button.photo-nav {
+  display: inline-grid;
+  place-items: center;
+  padding: max(calc(var(--u) * 8), 6px);
+}
+.ui-button.photo-close { min-width: var(--tap); min-height: var(--tap); }
+.photo-icon {
+  width: 1.4em;
+  height: 1.4em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.photo-stage {
+  position: relative;
+  min-height: 0;
+}
+/* The carousel: native horizontal scrolling, one photo per snap. Its own
+   scrollbar is hidden (the page's never is). overscroll-behavior keeps a
+   sideways swipe past the first or last photo from going back in history. */
+.photo-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  container-type: size;
+}
+.photo-track::-webkit-scrollbar { display: none; }
+.photo-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--photo-gap);
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+/* Natural proportions (--ar from the manifest, so the box is right before
+   the photo loads), within the screen shares and the room beside the buttons. */
+.photo-img {
+  --photo-room-w: calc(100cqw - 2 * (var(--photo-nav-size) + 2 * var(--photo-pad)));
+  --photo-room-h: 100cqh;
+  display: block;
+  width: min(var(--photo-max-w), var(--photo-room-w), calc(min(var(--photo-max-h), var(--photo-room-h)) * var(--ar)));
+  height: auto;
+  aspect-ratio: var(--ar);
+  background: var(--pile-well);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.photo-slide.has-caption .photo-img { --photo-room-h: calc(100cqh - var(--photo-caption-h)); }
+.photo-caption {
+  max-width: min(var(--photo-max-w), 100cqw - 2 * var(--photo-pad));
+  font-size: var(--photo-caption-size);
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.ui-button.photo-nav {
+  position: absolute;
+  top: 50%;
+  width: var(--photo-nav-size);
+  height: var(--photo-nav-size);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+.photo-prev { left: max(var(--photo-pad), var(--safe-left)); }
+.photo-next { right: max(var(--photo-pad), var(--safe-right)); }
+
+/* The strip: every photo's thumbnail; scrolls sideways; the current one lit. */
+.photo-strip {
+  display: flex;
+  justify-content: safe center;
+  gap: var(--photo-thumb-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: var(--photo-pad) max(var(--photo-pad), var(--safe-right)) max(var(--photo-pad), var(--safe-bottom)) max(var(--photo-pad), var(--safe-left));
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-border) transparent;
+}
+.photo-thumb {
+  flex: none;
+  height: var(--photo-thumb-h);
+  aspect-ratio: 3 / 2;
+  padding: 0;
+  background: var(--pile-well);
+  border: var(--pile-border) solid var(--ui-border);
+  border-radius: calc(var(--u) * 2);
+  overflow: hidden;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+.photo-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb[aria-current="true"] { opacity: 1; border-color: var(--photo-current); }
+@media (hover: hover) {
+  .photo-thumb:hover { opacity: 1; }
+}
+.photo-thumb:focus { outline: none; }
+.photo-thumb:focus-visible {
+  opacity: 1;
+  outline: max(calc(var(--u) * 2), 2px) solid var(--neon-glow);
+  outline-offset: 2px;
+}
+/* Portrait: the counter only (no strip); previous and next in the bottom
+   corners, under the photo, where a thumb reaches them. */
+@media (max-aspect-ratio: 4/5) {
+  .photo-strip { display: none; }
+  .photo-track { bottom: calc(var(--photo-nav-size) + 2 * var(--photo-pad) + var(--safe-bottom)); }
+  .photo-img { --photo-room-w: calc(100cqw - 2 * var(--photo-pad)); }
+  .ui-button.photo-nav { top: auto; bottom: calc(var(--photo-pad) + var(--safe-bottom)); transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-modal, .photo-modal.is-open { transition: none; }
+}
+
 /* ---- Fade jump (js/navigation.js) -----------------------------------------------
    Full-screen cover for "Back to start" and long rail jumps. Its colour comes
    from PACING.navigation.fadeColor; GSAP animates its opacity. It only exists
@@ -2518,6 +2792,185 @@ a.ui-button { text-decoration: none; }
     letter-spacing var(--label-fade) ease-out var(--label-delay), visibility 0s;
 }
 
+/* ---- Photo pile on the story card (js/photos.js) -----------------------------------
+   .pile-box has the card panel's geometry and sits under the cards. The button
+   .pile is as wide as its pill and stack, as tall as the part that shows
+   above the card's edge (--pile-top-room + --pile-rise), with its bottom edge
+   on the card's top (--pile-card-top, set by js); clip-path cuts it there
+   (nothing is clipped on the other sides), so the stack, which slides out from
+   behind the card, is tucked behind the edge. Opacity and transform only.
+   Derived sizes are set on the button itself, so --pile-scale (js: a pile that
+   finds little room shrinks) reaches all of them. */
+.pile {
+  --pw: calc(var(--pile-width) * var(--pile-scale, 1));              /* cover photo width */
+  --pf: calc(var(--pw) + 2 * var(--pile-pad));                       /* frame width */
+  --pr: calc(var(--pile-rise) * var(--pile-scale, 1));               /* visible rise of the cover's frame */
+  --pt: calc(var(--pile-top-room) * var(--pile-scale, 1));           /* room above the cover */
+  --ph: calc(var(--pt) + var(--pr));                                 /* the button's height */
+  position: absolute;
+  top: 0;
+  right: var(--pile-inset);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pile-gap);
+  height: var(--ph);
+  min-width: var(--tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  clip-path: inset(-100px -100px 0 -100px);                          /* cut at the card's top edge, the button's bottom */
+  transform: translateY(calc(var(--pile-card-top, 0px) - 100%));
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--pile-fade-out) ease, visibility 0s linear var(--pile-fade-out);
+}
+.pile.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--pile-fade-in) ease calc(var(--card-delay) + var(--pile-delay)), visibility 0s;
+}
+.pile:focus { outline: none; }
+
+.pile-stack {
+  position: relative;
+  flex: none;
+  order: 2;
+  width: var(--pf);
+  height: 100%;
+  transform: translateY(calc(var(--ph) + 8px));                      /* behind the card */
+  transition: transform var(--pile-slide-time) ease;
+}
+.pile.is-visible .pile-stack {
+  transform: translateY(0);
+  transition: transform var(--pile-slide-time) cubic-bezier(0.25, 0.8, 0.3, 1) calc(var(--card-delay) + var(--pile-delay));
+}
+.pile-layer {
+  position: absolute;
+  left: 0;
+  top: var(--pt);
+  width: var(--pf);
+  box-sizing: border-box;
+  padding: var(--pile-pad);
+  background: var(--pile-bg);
+  border: var(--pile-border) solid var(--pile-border-color);
+  border-radius: var(--pile-radius);
+  box-shadow: var(--pile-shadow) var(--pile-shadow) 0 color-mix(in srgb, var(--ocean) calc(var(--pile-shadow-opacity) * 100%), transparent);
+  transition: transform var(--pile-spread-time) ease;
+}
+.pile-layer img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--pile-well);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* The frame is taller than what shows, so a lifted pile never shows its lower edge. */
+.pile-layer::after {
+  content: "";
+  display: block;
+  height: calc(var(--pw) * 0.2);
+}
+/* The two photos behind the cover: offset and tilted edges, at rest and fanned (hover). */
+.pile-layer--0 { transform: rotate(-1.5deg); }
+.pile-layer--1 { transform: translate(calc(var(--pw) * 0.04), calc(var(--pw) * -0.03)) rotate(5deg); }
+.pile-layer--2 { transform: translate(calc(var(--pw) * -0.045), calc(var(--pw) * -0.02)) rotate(-6deg); }
+
+/* The pill: the CONTACT and CV buttons' look, "<n> PHOTOS" and an arrow pointing at the pile. */
+.pile-pill {
+  flex: none;
+  order: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--skip-icon-gap);
+  height: var(--skip-height);
+  min-width: var(--skip-height);
+  margin-top: calc(var(--pt) + var(--pr) / 2 - var(--skip-height) / 2);   /* centred on the pile's visible part */
+  padding: 0 var(--skip-pad-x);
+  background: var(--skip-bg);
+  border: var(--skip-border) solid var(--skip-color);
+  border-radius: calc(var(--skip-height) / 2);
+  color: var(--skip-color);
+  font: var(--skip-font-size) / 1 var(--ui-font);
+  letter-spacing: var(--skip-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--pile-fade-out) ease, background-color 0.2s ease, color 0.2s ease;
+}
+.pile.is-visible .pile-pill {
+  opacity: 1;
+  transition: opacity var(--pile-fade-in) ease calc(var(--card-delay) + var(--pile-delay)), background-color 0.2s ease, color 0.2s ease;
+}
+.pile-arrow {
+  flex: none;
+  width: var(--skip-icon-size);
+  height: var(--skip-icon-size);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* The arrow bobs a few units toward the pile, a few times when it comes out, then rests. */
+.pile.is-visible .pile-arrow {
+  animation: pile-bob var(--pile-bob-time) ease-in-out calc(var(--card-delay) + var(--pile-delay) + var(--pile-slide-time)) var(--pile-bob-count);
+}
+@keyframes pile-bob {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(var(--pile-arrow-bob)); }
+}
+
+/* Short windows, no room above the card: tucked behind the card's LEFT edge, at the
+   card's lower end ("side": the pile slides out sideways, its visible part is
+   --pile-side-w wide), or only the pill there ("pill"). The button's right edge is
+   the card's left edge, where it is cut. */
+.pile[data-mode="side"],
+.pile[data-mode="pill"] {
+  right: 100%;
+  clip-path: inset(-100px 0 -100px -100px);
+}
+/* Here the whole polaroid shows (only its right part is behind the card): the
+   button is as tall as one frame, and the frame has no extra length below. */
+.pile[data-mode="side"] {
+  --pr: calc(var(--pw) * 2 / 3 + 2 * var(--pile-pad) + var(--pile-shadow));
+}
+.pile[data-mode="side"] .pile-layer::after { height: 0; }
+.pile[data-mode="side"] .pile-stack {
+  width: var(--pile-side-w);
+  transform: translateX(calc(var(--pile-side-w) + 12px));
+}
+.pile[data-mode="side"].is-visible .pile-stack { transform: translateX(0); }
+.pile[data-mode="pill"] .pile-stack { display: none; }
+
+/* Focus ring (visible for the keyboard): around the cover and the pill. */
+.pile:focus-visible .pile-layer--0,
+.pile:focus-visible .pile-pill {
+  outline: max(calc(var(--u) * 2), 2px) solid var(--neon-glow);
+  outline-offset: 2px;
+}
+
+/* A mouse over the button: the pile lifts and fans slightly, the pill lights as the skip buttons do. */
+@media (hover: hover) {
+  .pile.is-visible:hover .pile-stack { transform: translateY(calc(-1 * var(--pile-lift))); }
+  .pile.is-visible:hover .pile-layer--0 { transform: rotate(-0.5deg); }
+  .pile.is-visible:hover .pile-layer--1 { transform: translate(calc(var(--pw) * 0.1), calc(var(--pw) * -0.05)) rotate(9deg); }
+  .pile.is-visible:hover .pile-layer--2 { transform: translate(calc(var(--pw) * -0.11), calc(var(--pw) * -0.03)) rotate(-10deg); }
+  .pile.is-visible:hover .pile-pill { background: var(--skip-hover-bg); color: var(--skip-hover-color); }
+}
+@media (pointer: coarse) {
+  .pile.is-visible:active .pile-pill { background: var(--skip-hover-bg); color: var(--skip-hover-color); }
+}
 
 /* ---- Reduced motion (accessibility pass) --------------------------------------------
    With prefers-reduced-motion: reduce, nothing moves by itself and nothing
@@ -2537,7 +2990,7 @@ a.ui-button { text-decoration: none; }
 
   /* Cards and boarding passes: they fade in place, no slide in from the side */
   .card,
-  .card.is-active,
+  .card.is-active { transform: none; }
   .pass,
   .pass.is-active { transform: translate(0, -50%); }
 
@@ -2552,6 +3005,16 @@ a.ui-button { text-decoration: none; }
     transform: translate(var(--label-x), var(--label-y));
     letter-spacing: calc(var(--city-label-px) * var(--city-label-tracking));
   }
+
+  /* Photo pile: a plain fade; no slide from behind the card, no bobbing arrow,
+     and the layers never fan */
+  .pile-stack,
+  .pile.is-visible .pile-stack,
+  .pile.is-visible:hover .pile-stack { transform: none; transition: none; }
+  .pile.is-visible .pile-arrow { animation: none; }
+  .pile.is-visible:hover .pile-layer--0 { transform: rotate(-1.5deg); }
+  .pile.is-visible:hover .pile-layer--1 { transform: translate(calc(var(--pw) * 0.04), calc(var(--pw) * -0.03)) rotate(5deg); }
+  .pile.is-visible:hover .pile-layer--2 { transform: translate(calc(var(--pw) * -0.045), calc(var(--pw) * -0.02)) rotate(-6deg); }
 
   /* Chapter rail: the active dot's growth is not animated */
   .rail-dot { transition: background-color 0.25s ease, border-color 0.25s ease; }

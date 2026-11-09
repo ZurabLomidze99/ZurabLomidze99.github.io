@@ -3,6 +3,16 @@
 // active. Which one comes from scroll progress in the story's render(p);
 // they switch by CSS class (short fade + slide, the next one waits for the
 // previous one to leave), so text is never stuck half-faded.
+//
+// The slot also decides where story cards stand, in one place (measureSlot):
+// every story card has the same top edge, whatever its height, so what is
+// anchored to it (the photo pile, the scroll hint) never moves between
+// cards. Wide: the TALLEST card is centred in the panel (--slot-top) and
+// shorter ones top-align at that line and grow downward. Portrait: the sheet
+// has one fixed height (--slot-h: the tallest card, or pass, capped at the
+// sheet's maximum), cards fill it with their content at the top. Boarding
+// passes keep their own height and position (centred in the panel, or
+// standing on the sheet's bottom edge).
 (function () {
   const P = window.PACING;
   const STORY = window.STORY;
@@ -34,6 +44,7 @@
     stop.cards.forEach((c, i) => {
       const el = document.createElement("article");
       el.className = "card";
+      el.dataset.stop = stop.id;   // js/photos.js finds a stop's cards by it
       el.innerHTML = `
         <p class="card-kicker"></p>
         <h2 class="card-title"></h2>
@@ -80,6 +91,38 @@
   measurePasses();
   window.addEventListener("resize", measurePasses);
 
+  // ---- The slot: one top edge for every story card ---------------------------------------
+  // Measured with every card at its natural height (.is-measuring), hidden
+  // ones included (they are laid out, only not painted), so no frame is
+  // painted in between. Again on resize, rotation and when fonts load.
+  const stage = document.querySelector(".stage");
+  const slot = { top: 0, height: 0, minHeight: 0 };   // in the panel's coordinates, px
+  function measureSlot() {
+    const portrait = window.layout.mode() === "portrait";
+    box.classList.add("is-measuring");
+    let tallest = 0, shortest = Infinity, tallestPass = 0;
+    for (const c of items) {
+      const h = c.el.offsetHeight;
+      if (c.pass) tallestPass = Math.max(tallestPass, h);
+      else { tallest = Math.max(tallest, h); shortest = Math.min(shortest, h); }
+    }
+    const room = box.clientHeight;   // wide: the panel; portrait: the sheet's maximum (.is-measuring)
+    box.classList.remove("is-measuring");
+    if (!isFinite(shortest)) shortest = 0;
+    if (portrait) {
+      slot.height = Math.round(Math.min(room, Math.max(tallest, tallestPass)));
+      slot.top = 0;
+      stage.style.setProperty("--slot-h", `${slot.height}px`);
+    } else {
+      slot.height = Math.round(tallest);
+      slot.top = Math.round((room - tallest) / 2);
+      stage.style.removeProperty("--slot-h");
+    }
+    slot.minHeight = Math.round(shortest);
+    stage.style.setProperty("--slot-top", `${slot.top}px`);
+    window.dispatchEvent(new Event("slotchange"));   // js/photos.js
+  }
+
   // Scroll ranges (%) from PACING now, and again whenever the timeline changes.
   function place() {
     for (const c of items) {
@@ -97,6 +140,11 @@
   }
   place();
   window.addEventListener("timelinechange", place);
+
+  measureSlot();
+  window.addEventListener("resize", measureSlot);
+  window.addEventListener("layoutchange", measureSlot);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureSlot);
 
   let active = null;
   let switchedAt = -Infinity;   // performance.now() of the last switch
@@ -129,6 +177,18 @@
   window.cardSlot = {
     // null, or { el, pass: bool, stopId, last } (stopId and last: cards only)
     active: () => active && { el: active.el, pass: !!active.pass, stopId: active.stopId, last: !!active.last },
+    // The slot: { top, height, minHeight } in the panel's coordinates (px); the story cards' common top
+    // edge, the tallest card's height and the shortest's.
+    geometry: () => ({ ...slot }),
+    // On screen: where a story card stands (its top edge is the same for all of them; its height is the
+    // tallest's), or the active pass's own rect. The scroll hint is anchored to it.
+    rect: () => {
+      const a = active;
+      if (!a) return null;
+      if (a.pass) return a.el.getBoundingClientRect();
+      const b = box.getBoundingClientRect();
+      return { left: b.left, right: b.right, width: b.width, top: b.top + slot.top, bottom: b.top + slot.top + slot.height, height: slot.height };
+    },
     switchingFor: () => Math.max(0, switchedAt + switchTime - performance.now()),   // ms left, 0 when settled
   };
 })();

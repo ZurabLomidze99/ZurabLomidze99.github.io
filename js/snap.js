@@ -23,7 +23,25 @@
 // nothing; the flick then goes to the next real stop, and the temporary one is
 // dropped once the page has come to rest somewhere else.
 // Off while the page is pinch-zoomed (it waits for the next touch again).
-// Mouse devices: nothing here runs, no markers exist.
+//
+// Mouse devices (PACING.snap.desktop "stops"): no markers and no CSS snapping.
+// Measured in the preview (Chromium): with scroll-snap-type mandatory or
+// proximity a wheel burst still passed stops (scroll-snap-stop: always was not
+// honoured for it; a burst snapped to the stop nearest where it ended), and a
+// single notch under half a stop's distance snapped back, so slow wheels
+// could not leave a stop. So the stops are kept by a small limiter instead,
+// from the same stop list (desktopStops below): a gesture is a run of wheel
+// events (or key presses) less than PACING.snap.wheelGap apart in one
+// direction; it scrolls the page itself, a notch at a time, and is pinned at
+// the next stop in its direction; the next gesture, after a pause, goes on
+// from there. Between stops it scrolls freely. The story is scrubbed, so
+// jumping a notch at a time is smoothed like any scroll. It leaves alone: a
+// scroll container under the pointer that can scroll itself (a long card's
+// text), Ctrl+wheel (zoom), the CV and photo viewers (page locked), the page
+// while it scrolls itself (hold), pinch zoom, form fields, and the ending
+// below its rest stop going down (the page's own scrolling). Keys: arrows (one
+// line), Space / PageDown / PageUp (a share of the screen), Space only when
+// nothing else has focus; Home and End are explicit jumps and stay native.
 (function () {
   const P = window.PACING;
   const S = P.snap;
@@ -60,6 +78,7 @@
   let touches = 0;
 
   const active = () => S.enabled && window.layout.touch();
+  const desktopOn = () => S.enabled && !window.layout.touch() && S.desktop === "stops";
   const maxScroll = () => root.scrollHeight - window.innerHeight;   // the real one, toolbar and all
   const stopY = (s) => (s.end ? maxScroll() : s.y);
 
@@ -84,12 +103,18 @@
         for (let i = 0; i < n; i++) add(`${s.id} card ${i + 1}`, range.from + (i + 0.5) * step);
       } else if (BOARDING.includes(s.id)) {
         add(`${s.id} (pass)`, s.from + len / 2);
+      } else if (FLYING.includes(s.id) && desktopOn()) {
+        // Interior stops about flightStep screens apart, so the plane still advances in steps.
+        const px = story.yForPos(s.to) - story.yForPos(s.from);
+        const n = Math.max(1, Math.round(px / (S.flightStep * window.layout.screenHeight())));
+        for (let k = 1; k < n; k++) add(`${s.id} ${k}/${n}`, s.from + (len * k) / n);
       } else if (FLYING.includes(s.id)) {
         add(`${s.id} 1/3`, s.from + len / 3);
         add(`${s.id} 2/3`, s.from + (2 * len) / 3);
       }
     }
     add("ending at rest", 200);
+    if (desktopOn()) return out;   // no stops through the ending: the page scrolls on its own there
     const restY = story.yForPos(200);
     const bottom = root.scrollHeight - window.layout.screenHeight();
     for (const y of endingStops(restY, bottom)) out.push({ kind: "ending", pos: null, y });
@@ -159,6 +184,10 @@
   }
 
   function build() {
+    if (desktopOn()) {   // no markers: the stop list is all the limiter needs
+      stops = stopList();
+      return;
+    }
     if (!active()) {
       clear();
       return;
@@ -272,9 +301,69 @@
   }).observe(ending);
   window.addEventListener("layoutchange", (e) => {
     if (e.detail.touch === e.detail.previous.touch) return;
-    if (!window.layout.touch()) clear();
+    if (!window.layout.touch()) { clear(); build(); }
     // Turning touch on: the resize settle that follows refreshes and rebuilds.
   });
+
+  // ---- Desktop: a wheel or key gesture never passes the next stop ----------------------------
+  let gesture = null;   // { dir, y0, y, stop, last }
+  const locked = () => root.classList.contains("is-cv-open") || root.classList.contains("is-photos-open");
+
+  // The first stop past y in a direction (the one the gesture will be pinned at).
+  function nextStop(y, dir) {
+    if (dir > 0) return stops.find((s) => s.y > y + S.tolerance) || null;
+    for (let i = stops.length - 1; i >= 0; i--) if (stops[i].y < y - S.tolerance) return stops[i];
+    return null;
+  }
+
+  // A scroll container that can scroll itself (a long card's text) keeps the wheel.
+  function scrollsInside(el) {
+    for (; el && el !== root && el !== document.body; el = el.parentElement) {
+      const o = getComputedStyle(el).overflowY;
+      if ((o === "auto" || o === "scroll") && el.scrollHeight > el.clientHeight + 1) return true;
+    }
+    return false;
+  }
+
+  // dy: px, signed. Returns true when the gesture was ours.
+  function step(dy, e) {
+    const dir = Math.sign(dy);
+    const now = performance.now();
+    if (!gesture || gesture.dir !== dir || now - gesture.last > S.wheelGap * 1000) {
+      gesture = { dir, y: window.scrollY, stop: nextStop(window.scrollY, dir) };
+    }
+    gesture.last = now;
+    if (!gesture.stop) return false;   // nothing ahead: the page's own scrolling
+    gesture.y += dy;
+    const hit = dir > 0 ? gesture.y >= gesture.stop.y : gesture.y <= gesture.stop.y;
+    e.preventDefault();
+    window.scrollTo({ top: hit ? gesture.stop.y : Math.max(0, Math.min(maxScroll(), gesture.y)), behavior: "instant" });
+    return true;
+  }
+
+  const idle = () => !desktopOn() || holds || zoomed || locked();
+
+  window.addEventListener("wheel", (e) => {
+    if (e.defaultPrevented || e.ctrlKey || idle()) return;
+    if (!e.deltaY || Math.abs(e.deltaX) > Math.abs(e.deltaY) || scrollsInside(e.target)) return;
+    const unit = e.deltaMode === 1 ? S.lineHeight : e.deltaMode === 2 ? window.innerHeight : 1;
+    step(e.deltaY * unit, e);
+  }, { capture: true, passive: false });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || idle()) return;
+    const t = e.target;
+    if (t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
+    const page = S.pageStep * window.innerHeight;
+    let dy = 0;
+    if (e.key === "ArrowDown") dy = S.lineHeight;
+    else if (e.key === "ArrowUp") dy = -S.lineHeight;
+    else if (e.key === "PageDown") dy = page;
+    else if (e.key === "PageUp") dy = -page;
+    else if (e.key === " " && (t === document.body || t === root)) dy = e.shiftKey ? -page : page;   // on a focused button, Space is its click
+    if (dy) step(dy, e);
+  }, { capture: true });
+  window.addEventListener("keyup", () => { gesture = null; }, { capture: true });
 
   // ---- Start: after the browser has restored the scroll position (a reload) ------------------
   hold();

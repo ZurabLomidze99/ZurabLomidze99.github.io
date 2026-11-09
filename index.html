@@ -49,9 +49,11 @@
          story track (its scroll length is PACING.screens, js/pacing.js), then
          as a dimmed backdrop while the ending scrolls over it. -->
     <div class="story">
-      <!-- The stage is a picture, not a landmark: the map is one image with a
-           name. The story itself (js/story-text.js) is a hidden text version
-           right after it; the visual title, cards and passes are aria-hidden. -->
+      <!-- The stage is a picture, not a landmark: the map is one labelled image
+           with no controls of its own (the photo piles are real buttons beside
+           the story cards, js/photos.js). The story itself (js/story-text.js)
+           is a hidden text version right after it; the visual title, cards and
+           passes are aria-hidden. -->
       <div class="stage">
         <div id="map" class="map" role="img" aria-label="Dark world map showing my path from Georgia to South Dakota to the Czech Republic"></div>
         <div class="stage-dim" aria-hidden="true"></div>
@@ -71,6 +73,7 @@
   <script src="js/profile.js"></script>
   <script src="js/cv.js"></script>
   <script src="js/stops.js"></script>
+  <script src="assets/photos/web/manifest.js"></script>
   <script src="js/pacing.js"></script>
   <script src="js/layout.js"></script>
   <script src="js/timeline.js"></script>
@@ -82,6 +85,7 @@
   <script src="js/passes.js"></script>
   <script src="js/cards.js"></script>
   <script src="js/city-labels.js"></script>
+  <script src="js/photos.js"></script>
   <script src="js/plane.js"></script>
   <script src="js/title.js"></script>
   <script src="js/story-text.js"></script>
@@ -89,6 +93,7 @@
   <script src="js/contact.js"></script>
   <script src="js/visiting-card.js"></script>
   <script src="js/cv-viewer.js"></script>
+  <script src="js/photo-viewer.js"></script>
   <script src="js/skip.js"></script>
   <script src="js/hint.js"></script>
   <script src="js/snap.js"></script>

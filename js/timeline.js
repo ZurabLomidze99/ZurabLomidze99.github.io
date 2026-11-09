@@ -8,6 +8,11 @@
 //
 //   length = max(its length in screens x the screen height, its minimum)
 //
+// With a mouse the same happens with PACING.desktopMin, but only while
+// PACING.snap.desktop is "stops" (a card is about 270 px and a boarding pass
+// about 85 px at 1080 px of height, shorter than a wheel notch or two); with
+// "off" (or snapping disabled) a mouse keeps the authored lengths.
+//
 // This file works the new lengths out and writes every derived percent back
 // into the PACING tables IN PLACE (sections, cards, the camera's arrive /
 // takeoff / landing, passes.leaveBeforeTouchdown, the chapters' targets) and
@@ -49,26 +54,27 @@
   // ---- Stretches: the story cut into pieces that can have a minimum ---------------
   // Contiguous, from 0 to 100, in authored percent. A stretch grows or not as a
   // whole; every number inside it keeps its share of it.
+  // A stretch's minimum is the named value (PACING.touchMin or desktopMin,
+  // by "key") times its count n; no key: no minimum.
   function buildStretches() {
-    const M = P.touchMin;
     const out = [];
-    const add = (kind, from, to, min) => out.push({ kind, from, to, min });
+    const add = (kind, from, to, key, n = 1) => out.push({ kind, from, to, key, n });
     for (const s of BASE.sections) {
       const stop = STOP_OF[s.id];
-      if (s.id === "title") add("title", s.from, s.to, M.title);
-      else if (s.id === "ending") add("pullBack", s.from, s.to, M.pullBack);
-      else if (boardingIds.includes(s.id)) add("pass", s.from, s.to, M.pass);
-      else if (flightIds.includes(s.id)) add("flight", s.from, s.to, 0);
+      if (s.id === "title") add("title", s.from, s.to, "title");
+      else if (s.id === "ending") add("pullBack", s.from, s.to, "pullBack");
+      else if (boardingIds.includes(s.id)) add("pass", s.from, s.to, "pass");
+      else if (flightIds.includes(s.id)) add("flight", s.from, s.to);
       else if (stop) {
         const cards = BASE.cards[stop];
         const n = STORY.stops.find((x) => x.id === stop).cards.length;
         let at = s.from;
         if (s.id === "georgia") {   // the fly-in; the other stops start with the landing, which belongs to the flight
           at = s.from + BASE.georgiaArrive;
-          add("flyIn", s.from, at, M.flyIn);
+          add("flyIn", s.from, at, "flyIn");
         }
-        add("settle", at, cards.from, 0);                 // the camera settling before the first card
-        add("cards", cards.from, cards.to, M.card * n);   // n cards of the same length
+        add("settle", at, cards.from);                       // the camera settling before the first card
+        add("cards", cards.from, cards.to, "card", n);       // n cards of the same length
       } else return null;
     }
     const ok = out.every((s, i) => s.to > s.from && s.from === (i ? out[i - 1].to : 0)) && out[out.length - 1].to === 100;
@@ -80,10 +86,12 @@
   // ---- The state for a screen: map from authored % to this screen's % -----------------
   const same = (x) => x;
   function stateFor(touch, H) {
+    const desktop = !touch && P.snap.enabled && P.snap.desktop === "stops";
+    const M = touch ? P.touchMin : desktop ? P.desktopMin : null;   // null: the authored lengths
     const full = P.screens * H;   // px, as authored
     if (!STRETCHES) return { stretched: false, fp: "base", lens: [], total: full, screens: P.screens, f: same, inv: same };
     const base = STRETCHES.map((s) => ((s.to - s.from) * full) / 100);
-    const lens = touch ? base.map((l, i) => Math.max(l, STRETCHES[i].min)) : base;
+    const lens = M ? base.map((l, i) => Math.max(l, (M[STRETCHES[i].key] || 0) * STRETCHES[i].n)) : base;
     if (lens.every((l, i) => l === base[i])) {
       return { stretched: false, fp: "base", lens, total: full, screens: P.screens, f: same, inv: same };
     }
