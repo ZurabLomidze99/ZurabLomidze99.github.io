@@ -93,6 +93,11 @@
             <h2 class="cv-name" id="cv-title">${esc(CV.name)}</h2>
             <p class="cv-role">${esc(CV.role)}${dot}${esc(CV.city)}</p>
             <p class="cv-summary">${esc(CV.summary)}</p>
+            ${CV.openTo && CV.openTo.length ? `<div class="cv-open">
+              <h3 class="cv-open-label">Open to</h3>
+              <ul class="cv-chips cv-chips--open">${CV.openTo.map((r) => `<li class="cv-chip">${esc(r)}</li>`).join("")}</ul>
+              ${CV.openToNote ? `<p class="cv-open-note">${esc(CV.openToNote)}</p>` : ""}
+            </div>` : ""}
           </div>
         </header>
         <div class="cv-cols">

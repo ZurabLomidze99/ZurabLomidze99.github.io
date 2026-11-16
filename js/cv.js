@@ -19,18 +19,23 @@ window.CV = {
   pdfName: "Zurab-Lomidze-CV.pdf",
   summary: "Project Management Intern at HP Inc. coordinating enterprise systems, vendor onboarding, and operational governance across EMEA workstreams. Master's candidate in Innovation Project Management at UCT Prague specializing in IS implementation complexity.",
 
+  // The roles I am open to: a highlighted block under the summary.
+  // openTo is the chips; openToNote is one muted line under them (empty for none).
+  openTo: ["Project Management", "Operations", "Logistics & Supply Chain Coordination", "Consultancy"],
+  openToNote: "Full-time · Prague area",
+
   // Skill chips in groups, each under its own small heading.
   skills: [
-    { group: "Governance & Delivery", items: ["RAID Logs", "UAT Governance", "SOP Development", "Stakeholder Alignment"] },
+    { group: "Governance & Delivery", items: ["Risk Management", "Testing Governance", "SOP Development", "Stakeholder Alignment", "Cross-Functional Delivery"] },
     { group: "Automation & Analytics", items: ["Process Automation", "Power Automate", "Copilot Studio", "Advanced Excel", "Power BI"] },
     { group: "Enterprise Systems", items: ["SAP S/4HANA", "Oracle EBS"] },
   ],
 
   languages: [
-    { name: "Georgian", level: "Native (C2)" },
     { name: "English", level: "Fluent (C2)" },
     { name: "Russian", level: "Intermediate (B1)" },
     { name: "Czech", level: "Beginner (A1)" },
+    { name: "Georgian", level: "Native (C2)" },
   ],
 
   // Newest first. The right column shows Experience, Projects, Education.
