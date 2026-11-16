@@ -15,6 +15,13 @@
   const root = document.createElement("section");
   root.className = "story-text";
   root.setAttribute("aria-label", "My story");
+  root.id = "story-text";
+  root.tabIndex = -1;   // the "Skip to main text" link (index.html) lands here; not a tab stop
+
+  // The link's own handler: focus the text without moving the page or the
+  // address (href stays for a page without script).
+  const skipLink = document.querySelector(".skip-link");
+  if (skipLink) skipLink.addEventListener("click", (e) => { e.preventDefault(); root.focus({ preventScroll: true }); });
 
   function el(tag, text, parent, id) {
     const node = document.createElement(tag);

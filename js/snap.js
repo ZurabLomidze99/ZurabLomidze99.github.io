@@ -354,6 +354,7 @@
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || idle()) return;
     const t = e.target;
     if (t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
+    if (scrollsInside(t)) return;   // a focused scroller (a long card's text, keyboard-focusable): its own keys, as the wheel
     const page = S.pageStep * window.innerHeight;
     let dy = 0;
     if (e.key === "ArrowDown") dy = S.lineHeight;

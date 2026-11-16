@@ -111,7 +111,7 @@
       </div>
       <div class="vcard-actions">
         <a class="ui-button vcard-mail" href="mailto:${esc(PROFILE.email)}?subject=${encodeURIComponent(MAIL_SUBJECT)}">${ICONS.email}<span class="ui-button-label">Email me</span></a>
-        ${button("vcard-copy", "Copy email", "Copied", 'type="button"', "Selected")}
+        ${button("vcard-copy", "Copy email", "Copied", 'type="button" aria-label="Copy email"', "Selected")}
         ${button("vcard-save", "Save contact")}
         ${FORM ? button("vcard-flip", "Leave your card", "Back to card", 'type="button" aria-pressed="false"') : ""}
       </div>

@@ -48,7 +48,7 @@
   const wrap = document.createElement("div");
   wrap.className = "cv-wrap";
   wrap.innerHTML = `
-    <button type="button" class="cv-folder" aria-haspopup="dialog">
+    <button type="button" class="cv-folder" aria-haspopup="dialog" aria-label="Open CV file">
       ${FOLDER}
       <span class="cv-folder-caption">CV FILE</span>
     </button>`;

@@ -30,7 +30,9 @@
   group.innerHTML = `
     <button type="button" class="skip-button skip-contact" aria-label="Skip to contact"><span class="skip-text">Contact</span>${ARROW}</button>
     <button type="button" class="skip-button skip-cv" aria-label="Open CV" aria-haspopup="dialog"><span class="skip-text">CV</span></button>`;
-  document.body.prepend(group);   // first in the Tab order; outside the stage, so its drag/zoom handlers never see these clicks
+  // Right after the "Skip to main text" link (index.html), which is first in the Tab order; outside the stage, so its drag/zoom handlers never see these clicks
+  const skipLink = document.querySelector(".skip-link");
+  if (skipLink) skipLink.after(group); else document.body.prepend(group);
 
   const contactBtn = group.querySelector(".skip-contact");
   const cvBtn = group.querySelector(".skip-cv");

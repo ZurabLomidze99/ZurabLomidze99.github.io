@@ -30,7 +30,7 @@ window.STORY = {
       city: { name: "Tbilisi", lat: 41.72, lon: 44.83, labelOffset: { x: -24, y: -44 } },  // above the dot (Georgia's southern border is just below), clear of the plane's nose while boarding
       country: "GEO",                     // ISO 3166-1 alpha-3: outlined + brighter land
       cards: [
-        { title: "Georgia", year: "Until 2018", text: "I grew up in Georgia carefree, with no professional responsibility and never a job. Together with my family, I decided it was time for a bigger step: I took the SAT, earned a scholarship worth $100,000 over four years at Augustana University, and decided to risk it all and go." },
+        { title: "Georgia", year: "Until 2018", text: "I grew up in Georgia and had never held a job. Until then I was simply enjoying being young. My family and I decided I should study in the United States, so I took the SAT and earned a scholarship worth $100,000 over four years at Augustana University." },
       ],
       photos: [
         { file: "georgia-1", alt: "A narrow street of old brick buildings and trees, with a tall TV tower rising behind the rooftops under a blue sky with big clouds.", caption: "" },
@@ -53,9 +53,9 @@ window.STORY = {
       country: "USA",
       state: "SD",                        // US postal code: strongest highlight
       cards: [
-        { title: "Arrival", year: "2018", text: "I arrived in Sioux Falls, South Dakota, all alone, under a vast sky with a long horizon on every side. I was socially awkward and not yet confident in English, but I adapted quickly. Everyone else was just as awkward, and we all smiled, knowing how few people end up in such a quiet state. We had no idea yet what a South Dakota winter would bring." },
-        { title: "University", year: "2018 – 2022", text: "This is where my discipline and character were really developed and tested. I met lifelong friends I still speak to today, and I had to integrate fully into the academic and rural life of South Dakota. I enjoyed studying with American professors across business, biology, philosophy, psychology and sport classes; each gave me something I remember fondly. I also discovered project management here, through an introductory class taught by Dan Steinwand, a satellite systems engineer." },
-        { title: "Work", year: "2020 – 2023", text: "I began by setting up events at the university sports center, my first earnings abroad. An internship at SDN Communications, the largest business internet provider in the Midwest, was my first step into a career, almost entirely during COVID. Next came a project management internship in the enterprise PMO at Sanford Health, fast-paced work that mattered to patients, clinics and first responders. After graduating, I joined Persona Signs full time as Project Assistant, supporting sales and manufacturing teams on signage for brands such as McDonald's, Tesla and Marriott." },
+        { title: "Arrival", year: "2018", text: "I arrived in Sioux Falls, South Dakota, on my own and still building confidence in my English. The other new students were just as awkward, and we all smiled about how few people end up in such a quiet state. None of us knew yet what a South Dakota winter would bring." },
+        { title: "University", year: "2018 – 2022", text: "I studied business at Augustana University and graduated in 2022, with classes ranging from biology to philosophy. I discovered project management in an introductory class taught by Dan Steinwand. Who better to teach it than a satellite systems engineer? The friends I made there are still close today." },
+        { title: "Work", year: "2020 – 2023", text: "I started by setting up events at the university sports center, my first earnings abroad, though the pay was almost nothing. Internships followed at SDN Communications, a business internet provider, and in the enterprise PMO at Sanford Health, where COVID-era work mattered to patients, clinics and first responders. After graduating I joined Persona Signs as Project Assistant." },
       ],
       photos: [
         { file: "usa-1", alt: "A downtown street in falling snow, with brick buildings, parked cars, string lights on the trees and a red car at the curb.", caption: "" },
@@ -77,9 +77,9 @@ window.STORY = {
       city: { name: "Prague", lat: 50.08, lon: 14.44 },
       country: "CZE",
       cards: [
-        { title: "Prague", year: "2024", text: "I moved to Prague for a Master's degree and a change of scene. Leaving rural, flat, vast South Dakota for narrow streets and crowds was a bigger shock than moving from Georgia to the United States, and it showed me how much I loved South Dakota. But people get used to anything, and Prague's beauty made it easy: historic streets once walked by kings, and the castle across the river. I made good friends here and rented my first apartment." },
-        { title: "Now", year: "2025 – today", text: "In Prague I found a project management internship in EMEA logistics at HP. It is the most challenging work I have done and the most rewarding, improving my project management, stress management, discipline and character. I like logistics because it never stops, it deals with physical goods, and it has contributed to globalization: real-world events affect shipments." },
-        { title: "Next", year: "Available now", text: "I am currently writing my master's thesis on the complexity of information system implementation projects, and I am looking for a full-time role in project management, operations or consultancy in the Prague area. My CV and contact details are one click away. Feel free to get in touch." },
+        { title: "Prague", year: "2024", text: "I moved to Prague to complete a Master's degree in Innovation Project Management. After rural South Dakota, a dense European city was a bigger adjustment than moving from Georgia to the United States, and it made me realise how much I had loved South Dakota. I settled in, made good friends and rented my first apartment." },
+        { title: "Now", year: "2025 – today", text: "In Prague I found an internship in EMEA logistics project management at HP. It is the most demanding work I have done, and it has sharpened my project management, stress management and discipline. I like logistics because it never stops: it deals with physical goods, and real-world events change shipments every day." },
+        { title: "Next", year: "Available now", text: "I am writing my master's thesis on the complexity of information system implementation projects, and I am looking for a full-time role in project management, operations or consultancy in the Prague area. If it sounds like a fit, I would be glad to hear from you. My CV and contact details are one click away." },
       ],
       photos: [
         { file: "czech-1", alt: "A garden pond in front of a long arcaded building with red-tiled roofs, with a hilltop castle on the skyline under a blue sky.", caption: "" },
