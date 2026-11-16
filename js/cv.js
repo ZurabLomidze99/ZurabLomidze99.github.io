@@ -21,7 +21,7 @@ window.CV = {
 
   // The roles I am open to: a highlighted block under the summary.
   // openTo is the chips; openToNote is one muted line under them (empty for none).
-  openTo: ["Project Management", "Operations", "Logistics & Supply Chain Coordination", "Consultancy"],
+  openTo: ["Project Management", "Process & Operations Improvement", "Logistics & Supply Chain Coordination", "Consultancy"],
   openToNote: "Full-time · Prague area",
 
   // Skill chips in groups, each under its own small heading.
